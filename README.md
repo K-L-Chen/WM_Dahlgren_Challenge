@@ -11,6 +11,6 @@ Kyle L. Chen
 
 ## Subsections
 1. [Main Repository](https://github.com/K-L-Chen/WM_Dahlgren_Challenge)
-2. [Text Files](https://k-l-chen.github.io/WM_Dahlgren_Challenge/TextFiles/README.md)
-3. [Datasets](https://k-l-chen.github.io/WM_Dahlgren_Challenge/Data/README.md)
-4. [Code](https://k-l-chen.github.io/WM_Dahlgren_Challenge/Code/README.md)
+2. [Text Files](https://k-l-chen.github.io/WM_Dahlgren_Challenge/TextFiles)
+3. [Datasets](https://k-l-chen.github.io/WM_Dahlgren_Challenge/Data)
+4. [Code](https://k-l-chen.github.io/WM_Dahlgren_Challenge/Code)
