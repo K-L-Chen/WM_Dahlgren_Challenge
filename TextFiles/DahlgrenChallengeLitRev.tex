@@ -30,7 +30,67 @@
 \bigskip
 
 \section*{The Weapon-Target Assignment Problem \\ \cite{wtap_kline_2019}}
-Lorem ipsum 1 $\ldots$
+
+\begin{itemize}
+    \item As $\uparrow$ quantity and quality of missiles, effective allocation research emerged.
+    \item Weapon Target Assignment (WTA) aka Missile Allocation Problem (MAP) $\Leftrightarrow$ minimize probabiilty of a missile destroying a protected assignment
+    \item Sometimes offense perspective OR defense perspective 
+    \item WTA $\rightarrow$ Static WTA (SWTA) or Dynamic WTA (DWTA)
+    \item SWTA:
+    \\ input: num. of incoming missiles (targets), num. of interceptors (weapons), probabilities of destroying targets
+    \\ output: how many of each weapon type to shoot at each target
+
+    \item DWTA includes time as a dimension. Two variants: two-stage and shoot-look-shoot
+
+    \begin{itemize}
+        \item Two-stage DWTA: 
+        \\ stages/input: 1. SWTA and 2. probability distribution of various kinds of targets 
+        \\ output: 1. allocation of weapons and 2. how many weapons to reserve to minimize prob. of destruction
+        
+        \item Shoot-kill-Shoot DWTA:
+        \\ replicates SWTA too, but enables observation of leakers: target that maybe survived the initial engagement for a subsequent engagement
+        \\ solution: allocation of weapons and reservation of weapons to rengage any leakers
+    \end{itemize}
+
+    \item WTA is NP-Complete, so majority of solutions seek near-optimal solutions in real-time, or fast-enough solutions before the adversary reaches their goals.
+    \item These solutions use heuristics or have exact solutions applied to variants of the WTA problem
+
+\end{itemize}
+
+\subsection*{Formulations}
+
+Notation:
+\begin{itemize}
+\item $p_{i j}$ : the probability weaponi destroys target $j$
+\item $q_{i j} (= 1 - p_{i j})$ : the probability weapon $i$ fails to destroys target $j$
+\item $V_j$ : the destructive value of target $j$
+\item $x_{i j}$ : the number of weapons of type $i$ assigned to target $j$
+\item $K$ : the number of protected assets
+\item $a_k$ : the value of asset $k$
+\item $n$ : the number of targets
+\item $m$ : the number of weapon types
+\item $w_i$ : the number of weapons of type $i$
+\item $c_{i j}$ : a cost parameter for assigning a weapon of type $i$ to target $j$
+\item $\mathcal{F}$ : the set of feasible assignments
+\item $\gamma_{j k}$ : the probability target $j$ destroys asset $k$
+\item $s_j$ : the maximum number of weapons that can be assigned to target $j$
+\item $t$ : the number of stages
+
+
+Main formulation:
+$$
+\begin{array}{ll}
+\min & \sum_{j=1}^n V_j \prod_{i=1}^m q_{i j}^{x_{i j}} \\
+\text { s.t. } & \sum_{j=1}^n x_{i j} \leq w_i \text {, for } i=1, \ldots, m \\
+& x_{i j} \in \mathbb{Z}_{+}, \text {for } i=1, \ldots, m, j=1, \ldots, n
+\end{array}
+$$
+
+In English: find the best assignment of number of weapons, across all types, that minimizes 
+the survival rate of the targets, with higher emphasis of those with more destructive value.
+The ``such that (s.t.)'' requriements indicate that we must respect our supply capacity of weapons and 
+that we must allocate at least weapon of each type to all targets.
+\end{itemize}
 
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
