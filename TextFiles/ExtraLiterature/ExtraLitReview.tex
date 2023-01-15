@@ -38,13 +38,76 @@
 \item Two key components of command and control are: weapon target allocation (WTA) and threat evaluation.
 \item Resource allocation is stochastic/uncertain with regard to the WTA problem.
 \item The WTA component of the WTA problem can be considered in 3 parts: response planning, response execution, outcome assessment.
-\item There exists three basic models: 
+\item There exists three basic models:
+\begin{center}
 \begin{enumerate}
-    \item[Basic Model 1] For maximizing damage to enemy (minimize expected target values $F$), we have \[\text{min}(\ F\ )\ =\ \sum_{i=1}^{|T|}V_i\ \Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
+    \item[Basic Model 1:] For maximizing damage to enemy (minimize expected target values $F$), we have \[\text{min}(\ F\ )\ =\ \sum_{i=1}^{|T|}V_i\ \Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
     This is the general WTA formula.
-    \item[Basic Model 2] For allocation of available units to maximize expected total protection value $J$, we have \[\text{max}(\ J\ ) = \sum_{j-1}^{|A|}\omega_j\ \Pi_{i \in G_j}(1 - \pi_{ij}\Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
-    \item[Basic Model 3]
+    \item[Basic Model 2:] For allocation of available units to maximize expected total protection value $J$, we have \[\text{max}(\ J\ )\ =\ \sum_{j=1}^{|A|}\omega_j\ \Pi_{i \in G_j}(1 - \pi_{ij}\Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
+    \item[Basic Model 3:] This is the model for Dynamic WTA at stage $t$ given the total expected combat value of surviving assets \[\text{max}(\ J_tX^t\ )\ =\ \sum_{j=1}^{|A(t)|}\omega_j\ \Pi_{i=1}^{|T(t)|}\left[1 - \pi_{ij}\Pi_{h=t}^S\Pi_{k=1}^{|W(t)|}(1-p_{ik}(h))^{x_{ih}(h)}\right]\]
+    \item[]
+    \begin{center}
+    \begin{tabular}{|p{4.25cm}  p{8cm}|}
+    		\hline
+    		\textbf{Variable Definitions} & \ \\
+            \hline
+            Sets & \\
+    		\hline
+    		$T_i$ & Set of detected threats $i = 1, 2, \cdots, I$. \\
+            \ & \ \\
+    		$w_k$ & Set of resources $k = 1, 2, \cdots, K$. \\
+            \ & \ \\
+    		$A_j$ & Set of assets $j = 1, 2, \cdots, J$. \\
+            \ & \ \\
+    		$S$ & Set of engagement stages, $s = 1, 2, \cdots, S$. \\
+            \ & \ \\
+            $A(t), T(t), W(t)$ & Set of current "defended assets, hostile targets, and available weapons during stage $t$, respectively."\\
+            \hline
+            Parameters & \ \\
+            \hline
+    		$P_{ik}$ & Estimated effectiveness/probability that weapon $w_k \in W$ neutralizes threat $T_i \in T$ if assigned to it.\\
+            \ & \ \\
+            $\pi_{ij}$ & Estimated probability threat $T_i \in T$ destroys asset $A_j \in A$. \\
+            \ & \ \\
+            $V_{ik}$ & Threat value of the threat-asset pair $(T_i, A_j)$. \\
+            \ & \ \\
+            $\omega_j$ & Protection value of asset $A_j$. \\
+            \ & \ \\
+            $C_{ik}$ & Resource usage cost for assigning $w_k$ to $T_i$. \\
+            \hline
+            Variables & \ \\
+            \hline
+            $X_{ik}$ & Is $1$ if resource $w_k$ is assigned to $T_i$, $0$ otherwise. \\
+            \ & \ \\
+            $\left[X_{ik}^s\right]_{I\times K}$ & Decision matrix at stage $s$. \\
+            \ & \ \\
+            $h$ & Index of stages $t, \cdots, S$. \\
+    		\hline
+    \end{tabular}
+    \end{center}
 \end{enumerate}
+\end{center}
+
+\item Dynamic WTA (DWTA) suffer from curse of dimensionality.
+\item WTA problem has two perspectives: $\textit{single platform perspective} \text{ and }\\\textit{force coordination perspective.}$ The former is single platform defending one asset against incoming threats, the latter is a command and control platform defending multiple assets.
+\item Within these perspectives exist two paradigms: $\textit{threat-by-threat} \text{ and }\\\textit{multi-threat.}$ The former being sequential targeting and the latter being parallel targeting.
+\item There also exists two different prioritizations of defense, as shown by basic models 1 and 2.
+\item Static WTA (SWTA) constraints: $X_{ik} \in \{0, 1\} \forall i\in\{1, 2, \cdots, |T|\},\forall k\in\{1, 2, \cdots, |W|\}$ given the equations: $\sum_{i = 1}^{|T|}X_{ik} = 1 \forall k\in\{1, 2, \cdots, |W|\}$ if each firing unit must be assigned a target and $\sum_{i = 1}^{|T|}X_{ik} \le 1 \forall k\in\{1, 2, \cdots, |W|\}$ otherwise, with $X_{ik}$ being a target $i$ being assigned to a resource $k$ in the constraint matrix $X$. \\
+\item Dynamic WTA (DWTA) problems have more constraints as follows:
+\vspace{-0.5cm}
+\begin{center}
+\begin{enumerate}
+    \begin{center}
+    \item[Weapon multi-target constraint: ] This constraint describes multi-target systems. As each multi-target system can also be considered as separate systems, $n_k = 1 \forall k\in\{1, 2, \cdots, W\}$. \[\sum_{i = 1}^{|T|}x_{ik}(t) \le n_k \forall t\in\{1, 2, \cdots, S\}, \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Strategy constraint: ] This constraint limits system-usage cost per target at stage $t$. $m_i$ depends on performance of available resource $k$ on target $i$. For missile systems, $m_i = 1$, and for artillery systems, $m_1 \ge 1$. \[\sum_{k = 1}^{|W|}x_{ik}(t) \le m_i \forall t\in\{1, 2, \cdots, S\}, \forall i\in\{1, 2, \cdots, |T|\}\]
+    \item[Resource constraint: ] This constraint governs over ammunition availability. \[\sum_{t=1}^S\sum_{i=1}^{|T|}x_{ik}(t)\le N_k, \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Engagement feasibility constraint: ] This constraint is over the resource-target relationship: if a target $i$ can be hit by a resource $k$ at stage $t$, then $f_{ik}(t) = 1$, and $f_{ik}(t) = 0$ otherwise.
+    \begin{align*}
+        x_{ik}(t) \le f_{ik}(t), && &\forall t\in\{1, 2, \cdots, S\}, \forall i \in \{1, 2, \cdots, |T|\}
+    \end{align*}
+    \end{center}
+\end{enumerate}
+\end{center}
 \end{itemize}
 
 
