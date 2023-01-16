@@ -92,15 +92,15 @@
 \item WTA problem has two perspectives: $\textit{single platform perspective} \text{ and }\\\textit{force coordination perspective.}$ The former is single platform defending one asset against incoming threats, the latter is a command and control platform defending multiple assets.
 \item Within these perspectives exist two paradigms: $\textit{threat-by-threat} \text{ and }\\\textit{multi-threat.}$ The former being sequential targeting and the latter being parallel targeting.
 \item There also exists two different prioritizations of defense, as shown by basic models 1 and 2.
-\item Static WTA (SWTA) constraints: $X_{ik} \in \{0, 1\} \forall i\in\{1, 2, \cdots, |T|\},\forall k\in\{1, 2, \cdots, |W|\}$ given the equations: $\sum_{i = 1}^{|T|}X_{ik} = 1 \forall k\in\{1, 2, \cdots, |W|\}$ if each firing unit must be assigned a target and $\sum_{i = 1}^{|T|}X_{ik} \le 1 \forall k\in\{1, 2, \cdots, |W|\}$ otherwise, with $X_{ik}$ being a target $i$ being assigned to a resource $k$ in the constraint matrix $X$. \\
+\item Static WTA (SWTA) constraints: $X_{ik} \in \{0, 1\} \forall i\in\{1, 2, \cdots, |T|\},\forall k\in\{1, 2, \cdots, |W|\}$ given the equations: $\sum_{i = 1}^{|T|}X_{ik} = 1 \ \ \ \forall k\in\{1, 2, \cdots, |W|\}$ if each firing unit must be assigned a target and $\sum_{i = 1}^{|T|}X_{ik} \le 1 \ \ \ \forall k\in\{1, 2, \cdots, |W|\}$ otherwise, with $X_{ik}$ being a target $i$ being assigned to a resource $k$ in the constraint matrix $X$. \\
 \item Dynamic WTA (DWTA) problems have more constraints as follows:
 \vspace{-0.5cm}
 \begin{center}
 \begin{enumerate}
     \begin{center}
-    \item[Weapon multi-target constraint: ] This constraint describes multi-target systems. As each multi-target system can also be considered as separate systems, $n_k = 1 \forall k\in\{1, 2, \cdots, W\}$. \[\sum_{i = 1}^{|T|}x_{ik}(t) \le n_k \forall t\in\{1, 2, \cdots, S\}, \forall k\in\{1, 2, \cdots, |W|\}\]
-    \item[Strategy constraint: ] This constraint limits system-usage cost per target at stage $t$. $m_i$ depends on performance of available resource $k$ on target $i$. For missile systems, $m_i = 1$, and for artillery systems, $m_1 \ge 1$. \[\sum_{k = 1}^{|W|}x_{ik}(t) \le m_i \forall t\in\{1, 2, \cdots, S\}, \forall i\in\{1, 2, \cdots, |T|\}\]
-    \item[Resource constraint: ] This constraint governs over ammunition availability. \[\sum_{t=1}^S\sum_{i=1}^{|T|}x_{ik}(t)\le N_k, \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Weapon multi-target constraint: ] This constraint describes multi-target systems. As each multi-target system can also be considered as separate systems, $n_k = 1 \forall k\in\{1, 2, \cdots, W\}$. \[\sum_{i = 1}^{|T|}x_{ik}(t) \le n_k \ \ \ \forall t\in\{1, 2, \cdots, S\}, \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Strategy constraint: ] This constraint limits system-usage cost per target at stage $t$. $m_i$ depends on performance of available resource $k$ on target $i$. For missile systems, $m_i = 1$, and for artillery systems, $m_1 \ge 1$. \[\sum_{k = 1}^{|W|}x_{ik}(t) \le m_i \ \ \ \forall t\in\{1, 2, \cdots, S\}, \forall i\in\{1, 2, \cdots, |T|\}\]
+    \item[Resource constraint: ] This constraint governs over ammunition availability. \[\sum_{t=1}^S\sum_{i=1}^{|T|}x_{ik}(t)\le N_k, \ \ \ \forall k\in\{1, 2, \cdots, |W|\}\]
     \item[Engagement feasibility constraint: ] This constraint is over the resource-target relationship: if a target $i$ can be hit by a resource $k$ at stage $t$, then $f_{ik}(t) = 1$, and $f_{ik}(t) = 0$ otherwise.
     \begin{align*}
         x_{ik}(t) \le f_{ik}(t), && &\forall t\in\{1, 2, \cdots, S\}, \forall i \in \{1, 2, \cdots, |T|\}
