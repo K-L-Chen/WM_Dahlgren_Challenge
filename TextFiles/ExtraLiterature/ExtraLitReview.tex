@@ -22,7 +22,10 @@
 \renewcommand\le{\leqslant}
 \renewcommand\ge{\geqslant}
 
+
+
 \begin{document} 
+
 %\noindent
 \begin{center}
 \textbf{Literature Review}
@@ -112,7 +115,20 @@
 
 
 \section*{Optimization of decision support system based on \\ three-stage threat evaluation and resource management \cite{Naseem2017OptimizationOD}}
-Lorem ipsum 2 $\ldots$
+\begin{itemize}
+    \item For the interception of theater ballistic missiles (TBMs), the U.S. Air Force noted that there exists two options for the WTAP: the Markov decision processes, an extension of the Markov chain, and approximate dynamic programming (ADP) for WTAPs involving TBMs.
+    \item For the latter option, there exist two different algorithmic approaches: approximate value iteration and approximate policy iteration (API); the paper uses the latter.
+    \item The API algorithmic strategy maps the system state -- includes incoming target amount, current asset health, and interceptor health -- to reaction fire against incoming targets, specifically how many interceptors to assign to each incoming target.
+    \item MDP Formula:\\
+    Let $\Gamma = \{1, 2, \cdots, T\},\ T \le \infty$, where the number of decision epochs $T$ is random and follows a geometric distribution with parameter $0 \le \gamma < 1$. \\Asset status component $a_t = (a_{ti})_{i\in A}\equiv (a_{t1}, a_{t2}, \cdots, a_{t|A|}$, where set of all assets $A = \{1, 2, \cdots, |A|\}$ and health of asset $a_{ti} \in \{0, 0.25, 0.5, 0.75, 1\}$, with $0$ being destroyed and $1$ being undamaged. \\
+    Let resource inventory component $R_t = (R_{ti})_{i\in A} \equiv (R_{t1}, R_{t2}, \cdots, R_{t|A|})$, with status element $R_{ti} \in \{0,1,\cdots r_i\}$, with
+    \item The MDP formula is too complex to be summarized, please refer to pages 7-10 of the paper.
+    \item There are two value function approximations for API: least squares policy evaluation (LSPE) and least squares temporal difference (LSTD).
+    \item \begin{center}
+        \begin{enumerate}
+        \end{enumerate}
+    \end{center}
+\end{itemize}
 
 
 
@@ -123,8 +139,8 @@ Lorem ipsum 3 $\ldots$
 \section*{Threat Evaluation In Air Defense Systems Using Analytic Network Process \cite{Unver2019ThreatEI}}
 Lorem ipsum 4 $\ldots$
 
-\section*{The SSA-BP-based potential threat prediction for aerial target considering commander emotion \\ \cite{WANG20222097}}
-Lorem ipsum 5 $\ldots$
+%\section*{The SSA-BP-based potential threat prediction for aerial target considering commander emotion \\ \cite{WANG20222097}}
+%Lorem ipsum 5 $\ldots$
 
 \newpage
 \begin{center}
