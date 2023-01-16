@@ -12,4 +12,12 @@ Java11=./Java/jdk-11.0.8/bin
 sleep infinity
 ```
 
-Then do `chmod +x Planner_Runner.sh` and then `./Planner_Runner.sh` in your terminal.
+Then run the following in your terminal:
+
+```
+chmod +x ./Java/jdk-11.0.8/bin/java.exe
+chmod +x Planner_Runner.sh
+./Planner_Runner.sh
+```
+
+and voila!
