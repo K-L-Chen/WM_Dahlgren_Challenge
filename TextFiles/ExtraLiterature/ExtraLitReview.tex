@@ -123,11 +123,58 @@
     Let $\Gamma = \{1, 2, \cdots, T\},\ T \le \infty$, where the number of decision epochs $T$ is random and follows a geometric distribution with parameter $0 \le \gamma < 1$. \\Asset status component $a_t = (a_{ti})_{i\in A}\equiv (a_{t1}, a_{t2}, \cdots, a_{t|A|}$, where set of all assets $A = \{1, 2, \cdots, |A|\}$ and health of asset $a_{ti} \in \{0, 0.25, 0.5, 0.75, 1\}$, with $0$ being destroyed and $1$ being undamaged. \\
     Let resource inventory component $R_t = (R_{ti})_{i\in A} \equiv (R_{t1}, R_{t2}, \cdots, R_{t|A|})$, with status element $R_{ti} \in \{0,1,\cdots r_i\}$, with
     \item The MDP formula is too complex to be summarized, please refer to pages 7-10 of the paper.
-    \item There are two value function approximations for API: least squares policy evaluation (LSPE) and least squares temporal difference (LSTD).
+    \item There are two value function approximations for API: least squares policy evaluation (LSPE) and least squares temporal difference (LSTD).\\
+    \vspace{-0.25cm}
+    \subsection*{API-LSPE Algorithm}
+    \hline
     \item \begin{center}
         \begin{enumerate}
+            \item[\textbf{Step 0:}] Initialize $\theta^0$
+            \item[\textbf{Step 1:}]\ \\
+                for $n = 1$ to $N$ (Policy Improvement Loop)\\
+                \begin{enumerate}
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop)
+                \begin{enumerate}
+                    \item Generate a random post-decision state $S_{t-1,k}^x$ 
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6)
+                    \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
+                    \item Record cost $C(S_{t,k}, x_{t,k})$\ .
+                \end{enumerate}
+                end for\\
+                Update $\theta^n$ and policy:
+            \\$\hat{\theta} = [(\Phi_{t-1})^T(\Phi_{t-1}]^-1(\Phi_{t-1})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
+                \end{enumerate}
+            end for\\
+            Return $X^{\pi_{adp}}(\cdot|\theta^N)$ and $\theta^N$\\
+            End.
         \end{enumerate}
     \end{center}
+    \subsection*{API-LSTD Algorithm}
+    \hline
+    \hline
+    \item \begin{center}
+        \begin{enumerate}
+            \item[\textbf{Step 0:}] Initialize $\theta^0$
+            \item[\textbf{Step 1:}]\ \\
+                for $n = 1$ to $N$ (Policy Improvement Loop)\\
+                \begin{enumerate}
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop)
+                \begin{enumerate}
+                    \item Generate a random post-decision state $S_{t-1,k}^x$ 
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6)
+                    \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
+                    \item Record cost $C(S_{t,k}, x_{t,k})$\ .
+                \end{enumerate}
+                end for\\
+                Update $\theta^n$ and policy:
+            \\$\hat{\theta} = [(\Phi_{t-1})^T(\Phi_{t-1}]^-1(\Phi_{t-1})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
+                \end{enumerate}
+            end for\\
+            Return $X^{\pi_{adp}}(\cdot|\theta^N)$ and $\theta^N$\\
+            End.
+
 \end{itemize}
 
 
