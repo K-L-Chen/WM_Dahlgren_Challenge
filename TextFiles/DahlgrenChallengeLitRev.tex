@@ -61,23 +61,24 @@
 
 Notation:
 \begin{itemize}
-\item $p_{i j}$ : the probability weaponi destroys target $j$
-\item $q_{i j} (= 1 - p_{i j})$ : the probability weapon $i$ fails to destroys target $j$
-\item $V_j$ : the destructive value of target $j$
-\item $x_{i j}$ : the number of weapons of type $i$ assigned to target $j$
-\item $K$ : the number of protected assets
-\item $a_k$ : the value of asset $k$
-\item $n$ : the number of targets
-\item $m$ : the number of weapon types
-\item $w_i$ : the number of weapons of type $i$
-\item $c_{i j}$ : a cost parameter for assigning a weapon of type $i$ to target $j$
-\item $\mathcal{F}$ : the set of feasible assignments
-\item $\gamma_{j k}$ : the probability target $j$ destroys asset $k$
-\item $s_j$ : the maximum number of weapons that can be assigned to target $j$
-\item $t$ : the number of stages
+    \item $p_{i j}$ : the probability weaponi destroys target $j$
+    \item $q_{i j} (= 1 - p_{i j})$ : the probability weapon $i$ fails to destroys target $j$
+    \item $V_j$ : the destructive value of target $j$
+    \item $x_{i j}$ : the number of weapons of type $i$ assigned to target $j$
+    \item $K$ : the number of protected assets
+    \item $a_k$ : the value of asset $k$
+    \item $n$ : the number of targets
+    \item $m$ : the number of weapon types
+    \item $w_i$ : the number of weapons of type $i$
+    \item $c_{i j}$ : a cost parameter for assigning a weapon of type $i$ to target $j$
+    \item $\mathcal{F}$ : the set of feasible assignments
+    \item $\gamma_{j k}$ : the probability target $j$ destroys asset $k$
+    \item $s_j$ : the maximum number of weapons that can be assigned to target $j$
+    \item $t$ : the number of stages
+\end{itemize}
 
 
-Main formulation:
+{\bf SWTA's main formulation}:
 $$
 \begin{array}{ll}
 \min & \sum_{j=1}^n V_j \prod_{i=1}^m q_{i j}^{x_{i j}} \\
@@ -86,11 +87,16 @@ $$
 \end{array}
 $$
 
-In English: find the best assignment of number of weapons, across all types, that minimizes 
-the survival rate of the targets, with higher emphasis of those with more destructive value.
+In English: find the best assignment of number of weapons, across all types,
+that minimizes the survival rate of the targets, with higher emphasis of those with more destructive value.
 The ``such that (s.t.)'' requriements indicate that we must respect our supply capacity of weapons and 
-that we must allocate at least weapon of each type to all targets.
-\end{itemize}
+that we must allocate at least weapon of each type to all targets.\\
+
+Other formulations:
+They make simplifying assumptions, such as assuming that the probability of using any weapon
+to destroy a target is the same or that there is only a capacity of one weapon of each type. Maybe there is 
+one weapon type per target. All of these different assumptions simplify optimization in some way, but obviously
+each has its pros and cons in terms of optimizability and applicability to real-world scenarios.  
 
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
