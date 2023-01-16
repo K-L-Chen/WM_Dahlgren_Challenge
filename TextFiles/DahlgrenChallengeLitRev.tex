@@ -46,9 +46,105 @@ Lorem ipsum 4 $\ldots$
 
 
 \section*{A Coordinated Air Defense Learning System Based on Immunized Classifier Systems \cite{immunized_nantogma_2021}}
-Lorem ipsum 5 $\ldots$
+    
+    Multi-agent systems can be applied to defense and security applications, specifically to solve threat evaluation and weapon assignment problems. These applications require complex systems, due to both the complexity of the application domain and incompleteness and uncertainty of perceived information. In addition, many battlefield decisions are time sensitive. All of the above make it difficult to design an effective model. This paper combines an artificial immune system and a learning classifier system to tackle common threat evaluation and weapon assignment problems. 
+    
+    An artificial immune system is a multi-agent, decentralized information processing system that is capable of learning and remembering. It uses computational techniques derived from defense mechanisms native to biological immune systems to accomplish its goals. In an immune system, an antigen is a harmful foreign substance, like a bacterium. B-cells, or lymphocytes, are immune cells that produce antibodies: markers that mark an antigen to be eaten by a T-cell. 
+    \begin{itemize}
+        \item \textbf{CLONALG}, one such technique based on clonal selection, uses the idea of immunological memory to implement the learning and remembering component of the artificial immune system. Biological immune systems implement memory by cloning two types of B-cell. One type of B-cell immediately acts to combat infection, while the other type is retained by the immune system and grants immunity to future infection.
+        
+        \item \textbf{Danger theory} is another technique based on the fact that immune systems only respond to harmful foreign substances. Similarly, in an immunized air defense system, it's important to determine which threat to prioritize. When making a weapon target assignment, it's important to take the threat level of the targets into account. 
 
+        Whenever a target, or hostile entity is detected, a danger zone is constructed, based on the trajectory of the detected target. The value of the combat units inside this danger zone signals how much priority should be given in intercepting the target.
+        
+        \item \textbf{Network theory}: In an immune system, the antibodies of many different B-cells, of the same and different type, are able to recognize and interact with each other, even without the presence of foreign substances. When one antibody recognizes the other, B-cells will produce different antibodies meant to suppress the recognized antibody, while the antibody that did the recognizing will get a boost in production. The resulting network of antibody interactions serves to broaden the diversity of the existing antibody population. 
 
+    \end{itemize}   
+    
+    A learning classifier system is a decision making system that makes use of simple if-then rules, or classifiers. As it executes, the classifiers are slowly improved. In operation, it consists of three phases: performance, reinforcement, and discovery, in that order. 
+    \begin{itemize}
+        \item \textbf{Performance:} In the performance phase, actions are selected and executed using an existing batch of classifiers. The classifiers that have that specific action are taken and stored in an action set. The executed action has an associated reward.
+        
+        \item \textbf{Reinforcement:} In the reinforcement phase, the parameters in the classifiers are updated using the reward from the performance phase. 
+        
+        The update equations for this phase for a classifier $cl$, are as follows: 
+        \begin{itemize}
+            \item \textbf{Prediction $cl.p$: } 
+                \begin{equation}
+                    cl.p = cl.p + \beta(R-cl.p)
+                \end{equation}
+            \item \textbf{Prediction Error $cl.\epsilon$: } 
+                \begin{equation}
+                    cl.\epsilon = cl.\epsilon + \beta(|R-cl.p| - cl.\epsilon)
+                \end{equation}
+            \item \textbf{Fitness $cl.F$: } 
+                \begin{equation}
+                    cl.F = cl.F + \beta(\hat{\lambda}(cl) - cl.F)
+                \end{equation}
+            \item \textbf{Accuracy $\lambda(cl)$: }
+                \begin{equation}
+                    \lambda (cl) = 
+                        \begin{cases}
+                            1 & \text{if } cl.\epsilon < \epsilon_0 \\
+                            \alpha(\frac{cl.\epsilon}{\epsilon_0})^{-v} & \text{if } cl.\epsilon \geq \epsilon_0
+                        \end{cases}
+                \end{equation}
+               Where $\epsilon_0$ is an accuracy criterion constant. A classifier is accurate if $cl.\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyper-parameters used to control the rate at which the accuracy reduces. 
+            \item \textbf{Relative accuracy $\hat{\lambda}(cl)$: }
+                \begin{equation}
+                    \hat{\lambda}(cl) = \frac{cl.n \times \lambda(cl)}{\sigma_{cl_b \in [A]} \lambda(b) \times b.n}
+                \end{equation}
+        \end{itemize}
+
+        \item \textbf{Discovery:} In the discovery phase, the algorithm applies a genetic algorithm to generate a new batch of classifiers. Two parents with high fitness are selected from the action set, and offspring are produced using a crossover algorithm and a random bit-flip mutation. Classifiers with low fitness are deleted if the number of total classifiers in the batch get too large, and classifiers whose conditionals are already included in more accurate, experienced classifiers can be deleted.
+    \end{itemize} 
+     
+    In a generic air defense mission, the two problems to solve are action strategy selection and cooperation. Thus, we use two agents, one in charge of generating strategies, and one in charge of coordinating defenses. The strategy generation agent uses a learning classifier to learn the right weapon and amount of ammunition to use against given targets. These classifiers are passed to the strategy coordination agent. Then, the strategy coordination agent uses immune network dynamics to decide what to do, given the classifiers that the strategy generation agent created. 
+
+    The strategy generation agent treats each weapon type as a B-cell, or decision unit, that each have their own classifiers, or antibodies. Each classifier will have control decisions as their consequent (the THEN component of the IF-THEN statement). Enemy forces are expressed in terms of their intent, capability, and opportunity. When individual B-cells activate on detection of antigens, or hostile units, the strategy generation agent generates a set of classifiers, from which the strategy generation agent selects the most appropriate action. The strategy generation agent interfaces with the environment through an intermediate module, which also provides local detectors for the B-cells.
+
+    The strategy coordination agent receives classifiers from the strategy generation agent, establishes connections between the classifiers, forming a network. Then, it applies immune network dynamics. Classifier $i$ is said to be connected to classifier $j$ if they produce antibodies for the same target. The concentrations for each classifier is calculated, and the one with the highest concentration ultimately is chosen as the action. The output classifiers from this immune network dynamics process are the ones that undergo genetic operations and updates. 
+    
+    \textbf{Specific Equations:}
+    \begin{itemize}
+        \item \textbf{Objective Function:} 
+        At time $T$, for targets detected $H$ and $C$ categories of weapons for each agent, with each category $C_p$ having $j$ ammunition, the objective function is
+            \begin{equation}
+                O_{b} = 
+                \begin{cases}
+                    min & \sum^{H'(t)}_{j=1} \sum^{C}_{i=1}\beta_i q_{ij} \delta_{ij} \\
+                    max & \sum^{H'(t)}_{j=1} v_j (1 - \prod^{C}_{i=1} (1-p_{ij})^{\delta_{ij}(s)})
+                \end{cases}
+            \end{equation}
+             Where $H'$ is the remaining number of unassigned detected targets/enemy units, $\delta_{ij}$ is the minimum delay before weapon $i$ can be deployed against target $j$ based on
+ready time and current allocation of that weapon, $q_{ij}$ is the quantity of ammunition of weapon of type $i$ allocated to target $j$, $b_i$ is the unit cost of the ammunition of weapon $i$, $v_j$ is the threat value of target $j$, and $p_{ij}$ is the weapon kill probability.
+        \item \textbf{Expected Action Payoff $P(a_i)$: } 
+            Given a set of classifiers matching the attributes of a specific B-cell $[M]$, the expected action payoff for a specific action $a_i$ is
+            \begin{equation}
+                P(a_i) = \frac{\sum_{cl_{k} \in [M] | a_i} cl_{k}.p \times cl_k.F * \omega}{\sum_{cl_{k} \in [M] | a_i} cl_l.F * \omega}
+            \end{equation}
+            Where $\omega$ is the affinity between the B-cells' classifiers and antigens. 
+            
+        \item \textbf{Classifier-Antigen Affinity $\omega$: }
+            \begin{equation}
+                \omega = [1 - \prod^{q}_{i=1}(1-d_g * p_g * w_e * r_t)] * v_c
+            \end{equation}
+            Where $q$ is the quantity of ammo suggested by the classifier, $d_g$ is the normalized distance between target $c$ and the friendly unit (B-cell), $p_g$ is the speed advantage of firing the weapon against the target, $w_e$ is the kill probability of the weapon suggested, $r_t$ is the ready time of the weapon if it were to be deployed, and $v_c$ is an estimate for the value of the target. 
+
+            This value tells you how good a weapon (described in a classifier) is against an antigen. 
+
+        \item \textbf{Classifier Concentration $a_i(t+1)$: }
+            \begin{equation}
+                \frac{da_i(t+1)}{dt} = \left(
+                    \alpha \sum^{N}_{j=1}m_{ji}a_j(t) - \beta\sum^{N}_{j=1}m_{ik}a_k(t) + \gamma m_i - k
+                    \right) a_i(t)
+            \end{equation}
+            Where $N$ is the number of classifiers that deal with the target antigen, $m_i$ is the affinity between classifier $i$ and the target antigen, $m_{ji}$ is the mutual stimulus coefficient of antibody $j$ on classifier $i$, $m_{ki}$ is the inhibitory effect of classifier $k$ on classifier $i$, $k$ is the natural death rate of classifier $i$, $a_i(t)$, $a_j(t)$, and $a_k(t)$ are the bounded concentrations that are imposed on the classifiers, and coefficients $\alpha$, $\beta$, and $\gamma$ are weight factors that determine the significance of each term. 
+            
+            This ordinary differential equation embodies the immune network dynamics that this algorithm needs. Classifiers compete with each other via this concentration value. Since it is an ordinary differential equation, you have to calculate the next step using previous values, like any other algorithmic differential equation solver.  
+    \end{itemize} 
+    
+    
 \section*{The state-of-the-art review on resource allocation problem using artificial intelligence methods on various computing paradigms \cite{resourceAlloc_joloudari_2022}}
 Lorem ipsum 6 $\ldots$
 
