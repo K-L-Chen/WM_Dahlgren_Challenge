@@ -1,5 +1,4 @@
-
-from google.protobuf import message, any_pb2
+# from google.protobuf import message, any_pb2
 import zmq
 
 from zmq.sugar.frame import Message

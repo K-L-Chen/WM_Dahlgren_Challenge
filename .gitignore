@@ -5,4 +5,13 @@ TextFiles/DahlgrenChallengeLitRev.synctex.gz
 TextFiles/DahlgrenChallengeLitRev.fls
 TextFiles/DahlgrenChallengeLitRev.bbl
 TextFiles/DahlgrenChallengeLitRev.blg
-3_Planner_Environment
+/Code/Planner/config
+/Code/Planner/Java
+/Code/Planner/JCORE
+/Code/Planner/libs
+/Code/Planner/log
+/Code/Planner/scripts
+/Code/Planner/Example_Clients/JavaClient
+/Code/Planner/Planner-3.0-jar-with-dependencies.jar
+*.pyc
+~$Planner_Instruction_Manual.pptx
