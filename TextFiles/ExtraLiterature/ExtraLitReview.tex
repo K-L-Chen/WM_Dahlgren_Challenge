@@ -129,15 +129,15 @@
     \hline
     \item \begin{center}
         \begin{enumerate}
-            \item[\textbf{Step 0:}] Initialize $\theta^0$
+            \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
             \item[\textbf{Step 1:}]\ \\
-                for $n = 1$ to $N$ (Policy Improvement Loop)\\
+                for $n = 1$ to $N$ (Policy Improvement Loop).\\
                 \begin{enumerate}
-                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop)
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop).
                 \begin{enumerate}
-                    \item Generate a random post-decision state $S_{t-1,k}^x$ 
-                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$
-                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6)
+                    \item Generate a random post-decision state $S_{t-1,k}^x$\ .
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$\ .
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6).
                     \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
                     \item Record cost $C(S_{t,k}, x_{t,k})$\ .
                 \end{enumerate}
@@ -155,28 +155,37 @@
     \hline
     \item \begin{center}
         \begin{enumerate}
-            \item[\textbf{Step 0:}] Initialize $\theta^0$
+            \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
             \item[\textbf{Step 1:}]\ \\
                 for $n = 1$ to $N$ (Policy Improvement Loop)\\
                 \begin{enumerate}
-                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop)
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop).
                 \begin{enumerate}
-                    \item Generate a random post-decision state $S_{t-1,k}^x$ 
-                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$
-                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6)
+                    \item Generate a random post-decision state $S_{t-1,k}^x$ \ .
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$\ .
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6).
                     \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
                     \item Record cost $C(S_{t,k}, x_{t,k})$\ .
+                    \item Record next post-decision state $S_{t,k}^x$ with $x_{t,k}$ and equation (5).
+                    \item Record basis function evaluation $\phi(S_{t,k}^x)$\ .
                 \end{enumerate}
                 end for\\
                 Update $\theta^n$ and policy:
-            \\$\hat{\theta} = [(\Phi_{t-1})^T(\Phi_{t-1}]^-1(\Phi_{t-1})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
+            \\$\hat{\theta} = [(\Phi_{t-1}-\gamma\Phi_{t})^T(\Phi_{t-1}-\gamma\Phi_{t}]^-1(\Phi_{t-1}-\gamma\Phi_{t})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
                 \end{enumerate}
             end for\\
             Return $X^{\pi_{adp}}(\cdot|\theta^N)$ and $\theta^N$\\
             End.
+        \end{enumerate}
+        \end{center}
+    With equations $5, 6, 7, 9$ being expressed in page 10-11.\\
+    \vspace{0.25cm}
+    \item $\theta$ is a parameter vector created from the set of basis functions $\phi_f(S_t))_{f\in F}$, with $F$ being the set of basis functions that reduces the size of the state variable to the most significant factors.
+\item We also have the basic function vector $\Phi_{t-1} \rightarrow \left[\begin{array}\phi(S_{t-1,1}^x) \\ \vdots \\ \phi(S_{t-1,K}^x)\end{array} \right]$ and cost vector $C_{t} \rightarrow \left[\begin{array} C(S_{t,1}) \\ \vdots \\ C(S_{t,K})\end{array} \right]$.
+\item We can estimate $\theta$ with $a_n = \frac{a}{a+n-1},\ a \in (0, \infty)$
 
+\item Of the two ADP methods and given the standard methods of engagement -- them being the one-target-per-interceptor, or "Match" Policy, and the one-target-per-two-interceptors, or "Overmatch" Policy -- the LSPE algorithm outperforms the standard methods of engaging TBMs when the duration of the engagement is inherently short or the targets have high hit likelihood -- i.e. are high quality. However, the Match Policy outperforms the LSPE algorithm if the engagement is long and the attacker's weapons are of lower quality. The LSTD algorithm follows this same trend.
 \end{itemize}
-
 
 
 \section*{An approximate dynamic programming approach for comparing firing policies in a networked air defense environment \cite{Summers2020AnAD}}
