@@ -23,7 +23,7 @@ pip install protobuf==3.20.0
 pip install pyzmq==24.0.0
 ```
 
-You will also need the [compiler] for `protobuf`/Google Protocol Buffers. Follow the steps under ["How do I start?"](https://developers.google.com/protocol-buffers/). You may need to restart your Windows computer after adding the environment variable to the `bin` directory so that you can execute 
+You will also need the compiler for `protobuf`/Google Protocol Buffers. Follow the steps under ["How do I start?"](https://developers.google.com/protocol-buffers/). You may need to restart your Windows computer after adding the environment variable to the `bin` directory so that you can execute 
 
 ```
 ❯ protoc --version
