@@ -45,38 +45,90 @@ class AiManager:
     def receiveScenarioConcludedNotificationPb(self, msg:ScenarioConcludedNotificationPb):
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
-    # Example function for building OutputPbs, returns OutputPb
-    def createActions(self, msg:StatePb):
 
-        # ShipActionPb's go into an OutputPb message
+    def createActions(self, msg:StatePb):
+        """
+        Oversees the A.I. response and sends it back to the planner
+
+        Parameters
+        ----------
+        msg: StatePb - data received from the planner, informing us of the state of the simulation
+        
+        Returns
+        -------
+        output_message: OutputPb with .actions: list[ShipAction] - list of A.I. actions from asset(s)
+        """
+
         output_message: OutputPb = OutputPb()
 
-        if len(msg.Tracks) > 0:
-            # ShipActionPb's are built using the same sytax as the printStateInfo function
+        # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
+        # output_message.actions.append(ship_action)
+        output_message.actions.extend(self.random_WTA_strategy(msg))
+
+        return output_message
+
+    
+    def random_WTA_strategy(self, msg:StatePb):
+        """
+        Random Weapon-Target assignments strategy
+
+        Random target selection, asset to shoot from, and weapon type
+
+        Only one weapon is used per timestep.
+
+        Parameters
+        ----------
+        msg: StatePb - received data from the planner
+
+        Returns
+        -------
+        list[ShipAction], each ShipAction indicating a weapon-target assignment
+        """
+
+        # if there are any enemy missiles and we have weapons
+        if len(msg.Tracks) > 0 and self.weapons_are_available(msg.assets):
+            # set up a data response to send later
             ship_action: ShipActionPb = ShipActionPb()
 
-            # Shoot at a random target 
-
+            # random target selection
             ship_action.TargetId = random.choice(msg.Tracks).TrackId             
 
+            # random asset to launch weapon from
             rand_asset = random.choice(msg.assets)
 
-            while rand_asset.AssetName == "Galleon_REFERENCE_SHIP":
+            # reference ship does not count; it has no weapons anyway
+            # our ship must also have at least one weapon available
+            while rand_asset.AssetName == "Galleon_REFERENCE_SHIP" or \
+                not self.weapons_in_asset(rand_asset):
                 rand_asset = random.choice(msg.assets)
 
             ship_action.AssetName = rand_asset.AssetName
 
+            # random weapon selection
             rand_weapon = random.choice(rand_asset.weapons)
 
+            # randomly scurry around until we have an immediate weapon to launch
             while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
                 rand_weapon = random.choice(rand_asset.weapons)
 
             ship_action.weapon = rand_weapon.SystemName
+        
+            return [ship_action]
 
-            # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
-            output_message.actions.append(ship_action)
+        else:
+            return []
+        
+        
+    # Helper methods for determining whether any weapons are left 
+    def weapons_are_available(self, assets:list[AssetPb]):
+        for asset in assets:
+            if self.weapons_in_asset(asset): return True
+        return False 
 
-        return output_message
+    def weapons_in_asset(self, asset:AssetPb):
+        for weapon in asset.weapons:
+            if weapon.Quantity > 0: return True
+        return False
 
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg:StatePb):
@@ -111,5 +163,3 @@ class AiManager:
             print("9 " + str(track.VelocityY))
             print("10: " + str(track.VelocityZ))
         print("**********************************")
-
-
