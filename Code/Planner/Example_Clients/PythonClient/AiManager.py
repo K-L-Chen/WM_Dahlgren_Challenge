@@ -5,6 +5,8 @@ from PlannerProto_pb2 import StatePb, AssetPb, TrackPb                          
 from PlannerProto_pb2 import OutputPb, ShipActionPb,  WeaponPb
 from publisher import Publisher
 
+import random
+
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
 # this class could be used toolbox that a more complex AI classes reference.
@@ -49,14 +51,31 @@ class AiManager:
         # ShipActionPb's go into an OutputPb message
         output_message: OutputPb = OutputPb()
 
-        # ShipActionPb's are built using the same sytax as the printStateInfo function
-        ship_action: ShipActionPb = ShipActionPb()
-        ship_action.TargetId = 2                
-        ship_action.AssetName = "Galleon HVU"
-        ship_action.weapon = "Chainshot_System"
+        if len(msg.Tracks) > 0:
+            # ShipActionPb's are built using the same sytax as the printStateInfo function
+            ship_action: ShipActionPb = ShipActionPb()
 
-        # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
-        output_message.actions.append(ship_action)
+            # Shoot at a random target 
+
+            ship_action.TargetId = random.choice(msg.Tracks).TrackId             
+
+            rand_asset = random.choice(msg.assets)
+
+            while rand_asset.AssetName == "Galleon_REFERENCE_SHIP":
+                rand_asset = random.choice(msg.assets)
+
+            ship_action.AssetName = rand_asset.AssetName
+
+            rand_weapon = random.choice(rand_asset.weapons)
+
+            while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
+                rand_weapon = random.choice(rand_asset.weapons)
+
+            ship_action.weapon = rand_weapon.SystemName
+
+            # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
+            output_message.actions.append(ship_action)
+
         return output_message
 
     # Function to print state information and provide syntax examples for accessing protobuf messags
@@ -92,6 +111,5 @@ class AiManager:
             print("9 " + str(track.VelocityY))
             print("10: " + str(track.VelocityZ))
         print("**********************************")
-
 
 
