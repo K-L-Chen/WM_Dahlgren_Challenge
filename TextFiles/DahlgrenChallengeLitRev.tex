@@ -98,6 +98,36 @@ to destroy a target is the same or that there is only a capacity of one weapon o
 one weapon type per target. All of these different assumptions simplify optimization in some way, but obviously
 each has its pros and cons in terms of optimizability and applicability to real-world scenarios.  
 
+{\bf DWTA's main formulation}:
+- I'm not going to really elaborate on the math; it gets substantially more complicated. I think an important 
+takeaway is that because SWTA was already intractable with its large amount of permutations to begin with, 
+DWTA is certainly intractable as well, given how it's basically just a stack of SWTAs. 
+- Feel free to look at the math yourself, but be willing to spend a lot of attention and time. I just did not think it was worth it.
+- Antoher important takeaway: it's a must to use approximation methods. 
+
+
+\subsection*{Exact Algorithms for SWTA}
+
+{\bf Maximum Marginal Return (MMR)}
+
+\begin{enumerate}
+\item Assign $x_{ij} = 1$ where $\{i, j\} \in argmax(V_j p_{ij})$
+\item $V_j \leftarrow V_j(1-p_{ij})$
+\item $p(i, \cdot) \leftarrow 0$ and $p(\cdot, j) \leftarrow 0$
+\item Repeat until all weapons have been assigned
+\end{enumerate}
+
+Note that it's best to divide the weapons evenly across all targets when there is only one 
+probability of kill, regardless of weapon or target.
+
+\subsection*{Exact Algorithms for DWTA}
+
+\subsection*{Heruistics for SWTA}
+
+\subsection*{Heruistics for DWTA}
+
+\subsection*{Discussion}
+
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
 Lorem ipsum 2 $\ldots$
