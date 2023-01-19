@@ -99,7 +99,7 @@ Lorem ipsum 4 $\ldots$
         \item \textbf{Discovery:} In the discovery phase, the algorithm applies a genetic algorithm to generate a new batch of classifiers. Two parents with high fitness are selected from the action set, and offspring are produced using a crossover algorithm and a random bit-flip mutation. Classifiers with low fitness are deleted if the number of total classifiers in the batch get too large, and classifiers whose conditionals are already included in more accurate, experienced classifiers can be deleted.
     \end{itemize} 
      
-    In a generic air defense mission, the two problems to solve are action strategy selection and cooperation. Thus, we use two agents, one in charge of generating strategies, and one in charge of coordinating defenses. The strategy generation agent uses a learning classifier to learn the right weapon and amount of ammunition to use against given targets. These classifiers are passed to the strategy coordination agent. Then, the strategy coordination agent uses immune network dynamics to decide what to do, given the classifiers that the strategy generation agent created. 
+    In a generic air defense mission, the two problems to solve are action strategy selection and cooperation. Thus, we use two agents, one in charge of generating strategies, and one in charge of coordinating defenses. The strategy generation agent uses a learning classifier system to learn the right weapon and amount of ammunition to use against given targets. These classifiers are passed to the strategy coordination agent. Then, the strategy coordination agent uses immune network dynamics to decide what to do, given the classifiers that the strategy generation agent created. 
 
     The strategy generation agent treats each weapon type as a B-cell, or decision unit, that each have their own classifiers, or antibodies. Each classifier will have control decisions as their consequent (the THEN component of the IF-THEN statement). Enemy forces are expressed in terms of their intent, capability, and opportunity. When individual B-cells activate on detection of antigens, or hostile units, the strategy generation agent generates a set of classifiers, from which the strategy generation agent selects the most appropriate action. The strategy generation agent interfaces with the environment through an intermediate module, which also provides local detectors for the B-cells.
 
@@ -123,7 +123,7 @@ ready time and current allocation of that weapon, $q_{ij}$ is the quantity of am
             \begin{equation}
                 P(a_i) = \frac{\sum_{cl_{k} \in [M] | a_i} cl_{k}.p \times cl_k.F * \omega}{\sum_{cl_{k} \in [M] | a_i} cl_l.F * \omega}
             \end{equation}
-            Where $\omega$ is the affinity between the B-cells' classifiers and antigens. 
+            Where $\omega$ is the affinity between the B-cells' classifiers and antigens. This is the reward that the agent receives for performing a specific action. 
             
         \item \textbf{Classifier-Antigen Affinity $\omega$: }
             \begin{equation}
@@ -131,7 +131,7 @@ ready time and current allocation of that weapon, $q_{ij}$ is the quantity of am
             \end{equation}
             Where $q$ is the quantity of ammo suggested by the classifier, $d_g$ is the normalized distance between target $c$ and the friendly unit (B-cell), $p_g$ is the speed advantage of firing the weapon against the target, $w_e$ is the kill probability of the weapon suggested, $r_t$ is the ready time of the weapon if it were to be deployed, and $v_c$ is an estimate for the value of the target. 
 
-            This value tells you how good a weapon (described in a classifier) is against an antigen. 
+            This value tells you how good a weapon (described in a classifier) is, against a specific antigen. 
 
         \item \textbf{Classifier Concentration $a_i(t+1)$: }
             \begin{equation}
@@ -141,12 +141,43 @@ ready time and current allocation of that weapon, $q_{ij}$ is the quantity of am
             \end{equation}
             Where $N$ is the number of classifiers that deal with the target antigen, $m_i$ is the affinity between classifier $i$ and the target antigen, $m_{ji}$ is the mutual stimulus coefficient of antibody $j$ on classifier $i$, $m_{ki}$ is the inhibitory effect of classifier $k$ on classifier $i$, $k$ is the natural death rate of classifier $i$, $a_i(t)$, $a_j(t)$, and $a_k(t)$ are the bounded concentrations that are imposed on the classifiers, and coefficients $\alpha$, $\beta$, and $\gamma$ are weight factors that determine the significance of each term. 
             
-            This ordinary differential equation embodies the immune network dynamics that this algorithm needs. Classifiers compete with each other via this concentration value. Since it is an ordinary differential equation, you have to calculate the next step using previous values, like any other algorithmic differential equation solver.  
+            This ordinary differential equation embodies the immune network dynamics that this algorithm leverages. Classifiers compete with each other via this concentration value. Since it is an ordinary differential equation, you have to calculate the next step's value using previous values, like any other algorithmic differential equation solver.  
     \end{itemize} 
     
     
 \section*{The state-of-the-art review on resource allocation problem using artificial intelligence methods on various computing paradigms \cite{resourceAlloc_joloudari_2022}}
-Lorem ipsum 6 $\ldots$
+    This is a comprehensive literature study on ML and deep learning methods for the resource allocation problem in different computing environments (distributed, IoT, etc.)
+    
+    Interesting Resource Allocation articles and their main ideas:
+    \begin{itemize}
+        \item \textbf{Othman and Nayan (2019): }
+
+            Review of solutions based on reinforcement and heuristic learning using a dynamic and adaptive allocation resource. Deep learning methods had faster, more accurate convergence. 
+            
+            A. Othman and N. A. Nayan, "Efficient admission control and resource allocation mechanisms for public safety
+    communications over 5G network slice," Telecommunication Systems, vol. 72, no. 4, pp. 595-607, 2019.
+
+        \item \textbf{Yousefzai et. al. (2017): }
+    
+            Investigation of the resource allocation problem in cloud computing. Examination of different schemes based on cloud computing resources using effective features like optimization goals, optimization methods, design approaches, and useful functions. 
+            
+            A. Yousafzai et al., "Cloud resource allocation schemes: review, taxonomy, and opportunities," Knowledge and Information Systems, vol. 50, no. 2, pp. 347-381, 2017.
+            
+        \item \textbf{Han et. al. (2018): }
+    
+            Describes an evolutionary reinforcement learning / genetic algorithm that works 90\% better than the naive strategy in long term use of a network. 
+            
+            B. Han, J. Lianghai, and H. D. Schotten, "Slice as an evolutionary service: Genetic optimization for inter-slice resource management in 5G networks," IEEE Access, vol. 6, pp. 33137-33147, 2018.
+            
+        \item \textbf{Bega et. al. (2017): }
+    
+            Descries 
+
+        D. Bega, M. Gramaglia, A. Banchs, V. Sciancalepore, K. Samdanis, and X. Costa-Perez, "Optimising 5G infrastructure markets: The business of network slicing," in IEEE INFOCOM 2017-IEEE Conference on Computer Communications, 2017: IEEE, pp. 1-9.
+        
+    communications over 5G network slice," Telecommunication Systems, vol. 72, no. 4, pp. 595-607, 2019.
+        
+    \end{itemize}
 
 
 \bibliographystyle{apalike}
