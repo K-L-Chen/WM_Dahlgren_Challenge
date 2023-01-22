@@ -4,6 +4,8 @@ On your browser, make sure you are logged in with your William & Mary Google acc
 
 What you see in the [`Planner`](./Planner) directory from GitHub is a modified subset of the files/folders found [here](https://drive.google.com/drive/folders/14c_LgWjHnV3PtF9zAae1G-9ESDJKL-O-?usp=share_link). Download the remaining files/folders and place them here.
 
+Locate `Planner/JCORE/JCORE/Data/Base/CommonData/Sensors_Emitters_Base.json` if applicable and change that JSON file to `Sensors&Emitters_Base.json`
+
 If you are not running a Windows machine, instead of running `Planner_Runner.bat`, please run `Planner_Runner.sh` instead.
 
 Then run the following in your terminal:
