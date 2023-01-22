@@ -110,6 +110,10 @@ DWTA is certainly intractable as well, given how it's basically just a stack of 
 
 {\bf Maximum Marginal Return (MMR)}
 
+This algorithm assums that the probabiilty of kill for any weapon target to target $j$ is the same.
+
+Then, the optimal solution is:
+
 \begin{enumerate}
 \item Assign $x_{ij} = 1$ where $\{i, j\} \in argmax(V_j p_{ij})$
 \item $V_j \leftarrow V_j(1-p_{ij})$
@@ -118,15 +122,61 @@ DWTA is certainly intractable as well, given how it's basically just a stack of 
 \end{enumerate}
 
 Note that it's best to divide the weapons evenly across all targets when there is only one 
-probability of kill, regardless of weapon or target.
+probability of kill, regardless of weapon or target.\\
+
+\noindent {\bf On Solving the Original SWTA Formulation}
+
+When you try exhaustive searches: a problem with $9$ weapons and $8$ targets
+take $13$ min to run to completion, and adding one additional target takes $43.7$ min. to run to completion. 
+Thus, there is a combinatorial explosion in run time as a function of the problem size.
+
+\noindent {\bf Brief Mention of Other Algorithms}
+\begin{itemize}
+    \item Branch-and-bound
+    \item Lower bounding strategies (generalized network flow, MMR, and minimum cost flow)
+    \item Linear integer programming
+    \item Joint Munition Effectiveness Manual (JMEM)
+\end{itemize}
 
 \subsection*{Exact Algorithms for DWTA}
+\begin{itemize}
+    \item Mathematics-based (Burr et al. (1985) \& Soland (1987) \& Hosein (1989))
+    \item Concave Adaptive Value Estimation (CAVE) with modified MMR (aka MMR Plus Algorithm)
+    \item Dynamic Programming
+\end{itemize}
 
 \subsection*{Heruistics for SWTA}
+All the above solutions focus on the optimal solution, but heuristic algorithms focus on real-time solutions.
+
+\begin{itemize}
+    \item Genetic algorithms 
+    \item Very Large Scale Neighborhood (VLSN) search metahueristic
+    \item Ant Colony Optimization
+    \item Integer relaxed NLP and rounding schemes 
+    \item Neural networks
+    \item Network-flow-based construction heruistic 
+    \item Simulated Annealing (SA)
+    \item Variable Neighbor Search (VNS)
+    \item Tabu Search 
+    \item Particle Swarm Optimization (PSO)
+    \item Lagrangian relaxation Branch and Bound
+    \item Hungarian Algorithm
+\end{itemize}
 
 \subsection*{Heruistics for DWTA}
 
+\begin{itemize}
+    \item ALIAS algorithm 
+    \item Decomposition algorithm 
+    \item Virtual permutations
+    \item Rule-based
+    \item Hungarian Algorithm
+    \item Neuro-dynamic programming to obtain near optimal policies. Optimal policies are obtained through dynamic programming
+\end{itemize}
+
 \subsection*{Discussion}
+The branch and bound algorithm and the genetic algorithm are both widely used in the literature. Bogdanowicz (2012)'s algorithm or 
+Xin et al. (2010)'s rule-based hueristic efficiently exploit the special structure of the problem.
 
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
@@ -151,5 +201,8 @@ Lorem ipsum 6 $\ldots$
 
 \bibliographystyle{apalike}
 \bibliography{LitRev}
+
+
+asdfasdfafdasfd
 
 \end{document}
