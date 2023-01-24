@@ -4,6 +4,8 @@
 \usepackage{amsthm}
 \usepackage{amsfonts}
 \usepackage{amsmath}
+\usepackage{multirow}
+
 % \usepackage{cite}
 
 
@@ -17,12 +19,12 @@
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\R}{\mathbb{R}}
 
+\newcommand{\eqline}{\vspace{-0.25cm} \cline{1-2} \vspace{-0.25cm}}
+
 \renewcommand{\v}{\mathbf{v}}
 
 \renewcommand\le{\leqslant}
 \renewcommand\ge{\geqslant}
-
-
 
 \begin{document} 
 
@@ -117,10 +119,10 @@
 Lorem ipsum 2 $\ldots$
 
 \section*{An approximate dynamic programming approach for comparing firing policies in a networked air defense environment \cite{Summers2020AnAD}}
-\begin{enumerate}
+\begin{itemize}
     \item For the interception of theater ballistic missiles (TBMs), the U.S. Air Force noted that there exists two options for the WTAP: the Markov decision processes, an extension of the Markov chain, and approximate dynamic programming (ADP) for WTAPs involving TBMs.
     \item For the latter option, there exist two different algorithmic approaches: approximate value iteration and approximate policy iteration (API); the paper uses the latter.
-    \item The API algorithmic strategy maps the system state -- includes incoming target amount, current asset health, and interceptor health -- to reaction fire against incoming targets, specifically how many interceptors to assign to each incoming target.
+    \item The API algorithmic strategy maps the system state -- includes incoming target amount, current asset health, and interceptor health -- \\ to reaction fire against incoming targets, specifically how many interceptors to assign to each incoming target.
     \item MDP Formula:\\
     Let $\Gamma = \{1, 2, \cdots, T\},\ T \le \infty$, where the number of decision epochs $T$ is random and follows a geometric distribution with parameter $0 \le \gamma < 1$. \\Asset status component $a_t = (a_{ti})_{i\in A}\equiv (a_{t1}, a_{t2}, \cdots, a_{t|A|}$, where set of all assets $A = \{1, 2, \cdots, |A|\}$ and health of asset $a_{ti} \in \{0, 0.25, 0.5, 0.75, 1\}$, with $0$ being destroyed and $1$ being undamaged. \\
     Let resource inventory component $R_t = (R_{ti})_{i\in A} \equiv (R_{t1}, R_{t2}, \cdots, R_{t|A|})$, with status element $R_{ti} \in \{0,1,\cdots r_i\}$, with
@@ -128,8 +130,9 @@ Lorem ipsum 2 $\ldots$
     \item There are two value function approximations for API: least squares policy evaluation (LSPE) and least squares temporal difference (LSTD).\\
     \vspace{-0.25cm}
     \subsection*{API-LSPE Algorithm}
-    \hline
-    \item \begin{center}
+    %\eqline
+	\hrule
+    \item[]\begin{center}
         \begin{enumerate}
             \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
             \item[\textbf{Step 1:}]\ \\
@@ -153,9 +156,8 @@ Lorem ipsum 2 $\ldots$
         \end{enumerate}
     \end{center}
     \subsection*{API-LSTD Algorithm}
-    \hline
-    \hline
-    \item \begin{center}
+ 	\hrule
+    \item[] \begin{center}
         \begin{enumerate}
             \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
             \item[\textbf{Step 1:}]\ \\
@@ -183,11 +185,11 @@ Lorem ipsum 2 $\ldots$
     With equations $5, 6, 7, 9$ being expressed in page 10-11.\\
     \vspace{0.25cm}
     \item $\theta$ is a parameter vector created from the set of basis functions $\phi_f(S_t))_{f\in F}$, with $F$ being the set of basis functions that reduces the size of the state variable to the most significant factors.
-\item We also have the basic function vector $\Phi_{t-1} \rightarrow \left[\begin{array}\phi(S_{t-1,1}^x) \\ \vdots \\ \phi(S_{t-1,K}^x)\end{array} \right]$ and cost vector $C_{t} \rightarrow \left[\begin{array} C(S_{t,1}) \\ \vdots \\ C(S_{t,K})\end{array} \right]$.
+\item We also have the basic function vector $\Phi_{t-1} \rightarrow \left[\begin{array}{c} \phi(S_{t-1,1})  \\ \vdots \\ \phi(S_{t-1\,K}^x)\end{array} \right]$ and cost vector $C_{t} \rightarrow \left[\begin{array}{c} C(S_{t,1}) \\ \vdots \\ C(S_{t,K}) \end{array} \right]$.
 \item We can estimate $\theta$ with $a_n = \frac{a}{a+n-1},\ a \in (0, \infty)$
 
 \item Of the two ADP methods and given the standard methods of engagement -- them being the one-target-per-interceptor, or "Match" Policy, and the one-target-per-two-interceptors, or "Overmatch" Policy -- the LSPE algorithm outperforms the standard methods of engaging TBMs when the duration of the engagement is inherently short or the targets have high hit likelihood -- i.e. are high quality. However, the Match Policy outperforms the LSPE algorithm if the engagement is long and the attacker's weapons are of lower quality. The LSTD algorithm follows this same trend.
-\end{enumerate}
+\end{itemize}
 
 \section*{Threat Evaluation In Air Defense Systems Using Analytic Network Process \cite{Unver2019ThreatEI}}
 Lorem ipsum 4 $\ldots$
