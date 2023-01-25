@@ -180,7 +180,59 @@ Xin et al. (2010)'s rule-based hueristic efficiently exploit the special structu
 
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
-Lorem ipsum 2 $\ldots$
+
+\subsection*{Abstract}
+\begin{itemize}
+    \item Monte Carlo control algorithm with Exploring Starts (MCES)
+    \item Q-learning: an off-policy temporal-difference (TD) learning-control algorithm
+    \item These algos. used in SIMPLIFIED version of weapon assignment (WA) problem
+\end{itemize}
+
+
+\subsection*{Introduction}
+\begin{itemize}
+    \item RL uses framework to define interaction between learning agent and environment in terms of states, actions, rewards
+    \item RL agent must discover by trial and error to get highest reward 
+    \item No exact method exists for the WA problem, evne when it is realtively small-sized 
+    \item Compare to threat evaluation (TE), WA decisions are more quantifiable
+    \item This article discusses whether RL is suitable for WA. 
+    
+    Flow: RL \& related work overview, greater context $\rightarrow$ command and control (C2), threat evaluation and weapon assignment (TEWA)
+    $\rightarrow$ how WA problem was modeled and how MCES \& Q-learning were applied $\rightarrow$ compare experimental results 
+    $\rightarrow$ ideas for future study
+\end{itemize}
+
+\subsection*{Overview of reinforcement learning and related work}
+\begin{itemize}
+    \item Azak \& Bayrak implemented agents for TWEA problems of C2 systems for decision-making.
+    \item They sought to optimize decision-making performance for multi-armed-platform-TEWA problems 
+    \item RL can be seen as a Markov Decision Process (MDP). This allows agent designers to work with systems 
+    in their current state, without worrying about how it came to be in that state in the first place. 
+    \item RL loop: agent given info. about env. through sensory input $\rightarrow$ action $\rightarrow$ reward
+    \item RL algos. maps each world state to agent actions
+\end{itemize}
+
+\subsection*{Command and control}
+\begin{itemize}
+\item C2 system = facilities, equipment, communications, procedures, personnel essential for planning, directing, and controlling 
+for a commander.
+\item It involves observation, orientation, decision, and action. 
+\item Observation: gather info. relevant to decision
+\item Orientation: cognitive effort; breaking down problem into sub-problems and matching each with emergency plan $\rightarrow$ overall action plan 
+\item Decision: whether to execute the action plan 
+\item Action: execution of chosen course of action or plan, e.g. physical attack/movement, order issuance, sensor maintenance for better future observations
+\item I don't think the rest of this subsection and the next one on threat evaluation and weapon assignment is that important for the lit. review.
+\end{itemize}
+
+\subsection*{Modeling the weapon assignment problem}
+\begin{itemize}
+    \item Asset to defend is at the center of the grid.
+    \item 4 missile stations defended the asset. Once these stations were placed, they remained fixed.
+    \item Threat takes straight line towards asset, and flies in from one of the cells. Once a threat reaches the asset, it eliminates the asset.
+    \item Threat stays in specific cell while all the weapons get a turn to shoot at the threat. If all weapons miss, the threat moves one cell closer.
+    \item If threat on weapon position, no shots can be fired. Thus, the threat gets a free pass to move one cell closer.
+    \item 
+\end{itemize}
 
 
 \section*{Optimization of Weapon-Target Pairings Based on Kill Probabilities \cite{killProbs_bogdanowicz_2013}}
