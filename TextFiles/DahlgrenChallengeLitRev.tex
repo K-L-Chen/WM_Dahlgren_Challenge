@@ -30,11 +30,209 @@
 \bigskip
 
 \section*{The Weapon-Target Assignment Problem \\ \cite{wtap_kline_2019}}
-Lorem ipsum 1 $\ldots$
+
+\begin{itemize}
+    \item As $\uparrow$ quantity and quality of missiles, effective allocation research emerged.
+    \item Weapon Target Assignment (WTA) aka Missile Allocation Problem (MAP) $\Leftrightarrow$ minimize probabiilty of a missile destroying a protected assignment
+    \item Sometimes offense perspective OR defense perspective 
+    \item WTA $\rightarrow$ Static WTA (SWTA) or Dynamic WTA (DWTA)
+    \item SWTA:
+    \\ input: num. of incoming missiles (targets), num. of interceptors (weapons), probabilities of destroying targets
+    \\ output: how many of each weapon type to shoot at each target
+
+    \item DWTA includes time as a dimension. Two variants: two-stage and shoot-look-shoot
+
+    \begin{itemize}
+        \item Two-stage DWTA: 
+        \\ stages/input: 1. SWTA and 2. probability distribution of various kinds of targets 
+        \\ output: 1. allocation of weapons and 2. how many weapons to reserve to minimize prob. of destruction
+        
+        \item Shoot-kill-Shoot DWTA:
+        \\ replicates SWTA too, but enables observation of leakers: target that maybe survived the initial engagement for a subsequent engagement
+        \\ solution: allocation of weapons and reservation of weapons to rengage any leakers
+    \end{itemize}
+
+    \item WTA is NP-Complete, so majority of solutions seek near-optimal solutions in real-time, or fast-enough solutions before the adversary reaches their goals.
+    \item These solutions use heuristics or have exact solutions applied to variants of the WTA problem
+
+\end{itemize}
+
+\subsection*{Formulations}
+
+Notation:
+\begin{itemize}
+    \item $p_{i j}$ : the probability weaponi destroys target $j$
+    \item $q_{i j} (= 1 - p_{i j})$ : the probability weapon $i$ fails to destroys target $j$
+    \item $V_j$ : the destructive value of target $j$
+    \item $x_{i j}$ : the number of weapons of type $i$ assigned to target $j$
+    \item $K$ : the number of protected assets
+    \item $a_k$ : the value of asset $k$
+    \item $n$ : the number of targets
+    \item $m$ : the number of weapon types
+    \item $w_i$ : the number of weapons of type $i$
+    \item $c_{i j}$ : a cost parameter for assigning a weapon of type $i$ to target $j$
+    \item $\mathcal{F}$ : the set of feasible assignments
+    \item $\gamma_{j k}$ : the probability target $j$ destroys asset $k$
+    \item $s_j$ : the maximum number of weapons that can be assigned to target $j$
+    \item $t$ : the number of stages
+\end{itemize}
+
+
+{\bf SWTA's main formulation}:
+$$
+\begin{array}{ll}
+\min & \sum_{j=1}^n V_j \prod_{i=1}^m q_{i j}^{x_{i j}} \\
+\text { s.t. } & \sum_{j=1}^n x_{i j} \leq w_i \text {, for } i=1, \ldots, m \\
+& x_{i j} \in \mathbb{Z}_{+}, \text {for } i=1, \ldots, m, j=1, \ldots, n
+\end{array}
+$$
+
+In English: find the best assignment of number of weapons, across all types,
+that minimizes the survival rate of the targets, with higher emphasis of those with more destructive value.
+The ``such that (s.t.)'' requriements indicate that we must respect our supply capacity of weapons and 
+that we must allocate at least weapon of each type to all targets.\\
+
+Other formulations:
+They make simplifying assumptions, such as assuming that the probability of using any weapon
+to destroy a target is the same or that there is only a capacity of one weapon of each type. Maybe there is 
+one weapon type per target. All of these different assumptions simplify optimization in some way, but obviously
+each has its pros and cons in terms of optimizability and applicability to real-world scenarios.  
+
+{\bf DWTA's main formulation}:
+- I'm not going to really elaborate on the math; it gets substantially more complicated. I think an important 
+takeaway is that because SWTA was already intractable with its large amount of permutations to begin with, 
+DWTA is certainly intractable as well, given how it's basically just a stack of SWTAs. 
+- Feel free to look at the math yourself, but be willing to spend a lot of attention and time. I just did not think it was worth it.
+- Antoher important takeaway: it's a must to use approximation methods. 
+
+
+\subsection*{Exact Algorithms for SWTA}
+
+{\bf Maximum Marginal Return (MMR)}
+
+This algorithm assums that the probabiilty of kill for any weapon target to target $j$ is the same.
+
+Then, the optimal solution is:
+
+\begin{enumerate}
+\item Assign $x_{ij} = 1$ where $\{i, j\} \in argmax(V_j p_{ij})$
+\item $V_j \leftarrow V_j(1-p_{ij})$
+\item $p(i, \cdot) \leftarrow 0$ and $p(\cdot, j) \leftarrow 0$
+\item Repeat until all weapons have been assigned
+\end{enumerate}
+
+Note that it's best to divide the weapons evenly across all targets when there is only one 
+probability of kill, regardless of weapon or target.\\
+
+\noindent {\bf On Solving the Original SWTA Formulation}
+
+When you try exhaustive searches: a problem with $9$ weapons and $8$ targets
+take $13$ min to run to completion, and adding one additional target takes $43.7$ min. to run to completion. 
+Thus, there is a combinatorial explosion in run time as a function of the problem size.
+
+\noindent {\bf Brief Mention of Other Algorithms}
+\begin{itemize}
+    \item Branch-and-bound
+    \item Lower bounding strategies (generalized network flow, MMR, and minimum cost flow)
+    \item Linear integer programming
+    \item Joint Munition Effectiveness Manual (JMEM)
+\end{itemize}
+
+\subsection*{Exact Algorithms for DWTA}
+\begin{itemize}
+    \item Mathematics-based (Burr et al. (1985) \& Soland (1987) \& Hosein (1989))
+    \item Concave Adaptive Value Estimation (CAVE) with modified MMR (aka MMR Plus Algorithm)
+    \item Dynamic Programming
+\end{itemize}
+
+\subsection*{Heruistics for SWTA}
+All the above solutions focus on the optimal solution, but heuristic algorithms focus on real-time solutions.
+
+\begin{itemize}
+    \item Genetic algorithms 
+    \item Very Large Scale Neighborhood (VLSN) search metahueristic
+    \item Ant Colony Optimization
+    \item Integer relaxed NLP and rounding schemes 
+    \item Neural networks
+    \item Network-flow-based construction heruistic 
+    \item Simulated Annealing (SA)
+    \item Variable Neighbor Search (VNS)
+    \item Tabu Search 
+    \item Particle Swarm Optimization (PSO)
+    \item Lagrangian relaxation Branch and Bound
+    \item Hungarian Algorithm
+\end{itemize}
+
+\subsection*{Heruistics for DWTA}
+
+\begin{itemize}
+    \item ALIAS algorithm 
+    \item Decomposition algorithm 
+    \item Virtual permutations
+    \item Rule-based
+    \item Hungarian Algorithm
+    \item Neuro-dynamic programming to obtain near optimal policies. Optimal policies are obtained through dynamic programming
+\end{itemize}
+
+\subsection*{Discussion}
+The branch and bound algorithm and the genetic algorithm are both widely used in the literature. Bogdanowicz (2012)'s algorithm or 
+Xin et al. (2010)'s rule-based hueristic efficiently exploit the special structure of the problem.
 
 
 \section*{Applying reinforcement learning to the weapon assignment problem in air defence \cite{rl_wa_airDefence_mouton_2011}}
-Lorem ipsum 2 $\ldots$
+
+\subsection*{Abstract}
+\begin{itemize}
+    \item Monte Carlo control algorithm with Exploring Starts (MCES)
+    \item Q-learning: an off-policy temporal-difference (TD) learning-control algorithm
+    \item These algos. used in SIMPLIFIED version of weapon assignment (WA) problem
+\end{itemize}
+
+
+\subsection*{Introduction}
+\begin{itemize}
+    \item RL uses framework to define interaction between learning agent and environment in terms of states, actions, rewards
+    \item RL agent must discover by trial and error to get highest reward 
+    \item No exact method exists for the WA problem, evne when it is realtively small-sized 
+    \item Compare to threat evaluation (TE), WA decisions are more quantifiable
+    \item This article discusses whether RL is suitable for WA. 
+    
+    Flow: RL \& related work overview, greater context $\rightarrow$ command and control (C2), threat evaluation and weapon assignment (TEWA)
+    $\rightarrow$ how WA problem was modeled and how MCES \& Q-learning were applied $\rightarrow$ compare experimental results 
+    $\rightarrow$ ideas for future study
+\end{itemize}
+
+\subsection*{Overview of reinforcement learning and related work}
+\begin{itemize}
+    \item Azak \& Bayrak implemented agents for TWEA problems of C2 systems for decision-making.
+    \item They sought to optimize decision-making performance for multi-armed-platform-TEWA problems 
+    \item RL can be seen as a Markov Decision Process (MDP). This allows agent designers to work with systems 
+    in their current state, without worrying about how it came to be in that state in the first place. 
+    \item RL loop: agent given info. about env. through sensory input $\rightarrow$ action $\rightarrow$ reward
+    \item RL algos. maps each world state to agent actions
+\end{itemize}
+
+\subsection*{Command and control}
+\begin{itemize}
+\item C2 system = facilities, equipment, communications, procedures, personnel essential for planning, directing, and controlling 
+for a commander.
+\item It involves observation, orientation, decision, and action. 
+\item Observation: gather info. relevant to decision
+\item Orientation: cognitive effort; breaking down problem into sub-problems and matching each with emergency plan $\rightarrow$ overall action plan 
+\item Decision: whether to execute the action plan 
+\item Action: execution of chosen course of action or plan, e.g. physical attack/movement, order issuance, sensor maintenance for better future observations
+\item I don't think the rest of this subsection and the next one on threat evaluation and weapon assignment is that important for the lit. review.
+\end{itemize}
+
+\subsection*{Modeling the weapon assignment problem}
+\begin{itemize}
+    \item Asset to defend is at the center of the grid.
+    \item 4 missile stations defended the asset. Once these stations were placed, they remained fixed.
+    \item Threat takes straight line towards asset, and flies in from one of the cells. Once a threat reaches the asset, it eliminates the asset.
+    \item Threat stays in specific cell while all the weapons get a turn to shoot at the threat. If all weapons miss, the threat moves one cell closer.
+    \item If threat on weapon position, no shots can be fired. Thus, the threat gets a free pass to move one cell closer.
+    \item 
+\end{itemize}
 
 
 \section*{Optimization of Weapon-Target Pairings Based on Kill Probabilities \cite{killProbs_bogdanowicz_2013}}
@@ -174,5 +372,8 @@ ready time and current allocation of that weapon, $q_{ij}$ is the quantity of am
 
 \bibliographystyle{apalike}
 \bibliography{LitRev}
+
+
+asdfasdfafdasfd
 
 \end{document}
