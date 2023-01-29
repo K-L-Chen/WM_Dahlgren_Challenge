@@ -238,11 +238,6 @@ for a commander.
 \section*{Optimization of Weapon-Target Pairings Based on Kill Probabilities \cite{killProbs_bogdanowicz_2013}}
     Kill probabilities are not additive; the odds that multiple weapons kill a target is greater than the sum of the odds that each one kills the target summed up, since you can do things such as attack from various angles. This allows us to constrain the algorithm further to improve performance. Furthermore, user-imposed constraints (such as restrictions on the number of weapons that can be assigned to a given target) can massively improve performance. Since different algorithms are better at different levels of searching (genetic algorithms are good at global searching but get stuck in local optima easily, harmony search is very good at local optimization), switching from one to another at various points in the calculation can also dramatically improve performance.   
 
-
-\section*{A New Approach to Weapon-Target Assignment in Cooperative Air Combat \cite{swarmHarmony_chang_2017}}
-Lorem ipsum 4 $\ldots$
-
-
 \section*{A Coordinated Air Defense Learning System Based on Immunized Classifier Systems \cite{immunized_nantogma_2021}}
     
     Multi-agent systems can be applied to defense and security applications, specifically to solve threat evaluation and weapon assignment problems. These applications require complex systems, due to both the complexity of the application domain and incompleteness and uncertainty of perceived information. In addition, many battlefield decisions are time sensitive. All of the above make it difficult to design an effective model. This paper combines an artificial immune system and a learning classifier system to tackle common threat evaluation and weapon assignment problems. 
@@ -369,11 +364,157 @@ ready time and current allocation of that weapon, $q_{ij}$ is the quantity of am
         
     \end{itemize}
 
+\section*{A Survey on Weapon Target Allocation Models \\ \cite{Ghanbari2021ASO}}
+\begin{itemize}
+\item Two key components of command and control are: weapon target allocation (WTA) and threat evaluation.
+\item Resource allocation is stochastic/uncertain with regard to the WTA problem.
+\item The WTA component of the WTA problem can be considered in 3 parts: response planning, response execution, outcome assessment.
+\item There exists three basic models:
+\begin{center}
+\begin{enumerate}
+    \item[Basic Model 1:] For maximizing damage to enemy (minimize expected target values $F$), we have \[\text{min}(\ F\ )\ =\ \sum_{i=1}^{|T|}V_i\ \Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
+    This is the general WTA formula.
+    \item[Basic Model 2:] For allocation of available units to maximize expected total protection value $J$, we have \[\text{max}(\ J\ )\ =\ \sum_{j=1}^{|A|}\omega_j\ \Pi_{i \in G_j}(1 - \pi_{ij}\Pi_{k=1}^{|W|}(1 - P_{ik})^{x_ik}\]
+    \item[Basic Model 3:] This is the model for Dynamic WTA at stage $t$ given the total expected combat value of surviving assets \[\text{max}(\ J_tX^t\ )\ =\ \sum_{j=1}^{|A(t)|}\omega_j\ \Pi_{i=1}^{|T(t)|}\left[1 - \pi_{ij}\Pi_{h=t}^S\Pi_{k=1}^{|W(t)|}(1-p_{ik}(h))^{x_{ih}(h)}\right]\]
+    \item[]
+    \begin{center}
+    \begin{tabular}{|p{4.25cm}  p{8cm}|}
+    		\hline
+    		\textbf{Variable Definitions} & \ \\
+            \hline
+            Sets & \\
+    		\hline
+    		$T_i$ & Set of detected threats $i = 1, 2, \cdots, I$. \\
+            \ & \ \\
+    		$w_k$ & Set of resources $k = 1, 2, \cdots, K$. \\
+            \ & \ \\
+    		$A_j$ & Set of assets $j = 1, 2, \cdots, J$. \\
+            \ & \ \\
+    		$S$ & Set of engagement stages, $s = 1, 2, \cdots, S$. \\
+            \ & \ \\
+            $A(t), T(t), W(t)$ & Set of current "defended assets, hostile targets, and available weapons during stage $t$, respectively."\\
+            \hline
+            Parameters & \ \\
+            \hline
+    		$P_{ik}$ & Estimated effectiveness/probability that weapon $w_k \in W$ neutralizes threat $T_i \in T$ if assigned to it.\\
+            \ & \ \\
+            $\pi_{ij}$ & Estimated probability threat $T_i \in T$ destroys asset $A_j \in A$. \\
+            \ & \ \\
+            $V_{ik}$ & Threat value of the threat-asset pair $(T_i, A_j)$. \\
+            \ & \ \\
+            $\omega_j$ & Protection value of asset $A_j$. \\
+            \ & \ \\
+            $C_{ik}$ & Resource usage cost for assigning $w_k$ to $T_i$. \\
+            \hline
+            Variables & \ \\
+            \hline
+            $X_{ik}$ & Is $1$ if resource $w_k$ is assigned to $T_i$, $0$ otherwise. \\
+            \ & \ \\
+            $\left[X_{ik}^s\right]_{I\times K}$ & Decision matrix at stage $s$. \\
+            \ & \ \\
+            $h$ & Index of stages $t, \cdots, S$. \\
+    		\hline
+    \end{tabular}
+    \end{center}
+\end{enumerate}
+\end{center}
 
+\item Dynamic WTA (DWTA) suffer from curse of dimensionality.
+\item WTA problem has two perspectives: $\textit{single platform perspective} \text{ and }\\\textit{force coordination perspective.}$ The former is single platform defending one asset against incoming threats, the latter is a command and control platform defending multiple assets.
+\item Within these perspectives exist two paradigms: $\textit{threat-by-threat} \text{ and }\\\textit{multi-threat.}$ The former being sequential targeting and the latter being parallel targeting.
+\item There also exists two different prioritizations of defense, as shown by basic models 1 and 2.
+\item Static WTA (SWTA) constraints: $X_{ik} \in \{0, 1\} \forall i\in\{1, 2, \cdots, |T|\},\forall k\in\{1, 2, \cdots, |W|\}$ given the equations: $\sum_{i = 1}^{|T|}X_{ik} = 1 \ \ \ \forall k\in\{1, 2, \cdots, |W|\}$ if each firing unit must be assigned a target and $\sum_{i = 1}^{|T|}X_{ik} \le 1 \ \ \ \forall k\in\{1, 2, \cdots, |W|\}$ otherwise, with $X_{ik}$ being a target $i$ being assigned to a resource $k$ in the constraint matrix $X$. \\
+\item Dynamic WTA (DWTA) problems have more constraints as follows:
+\vspace{-0.5cm}
+\begin{center}
+\begin{enumerate}
+    \begin{center}
+    \item[Weapon multi-target constraint: ] This constraint describes multi-target systems. As each multi-target system can also be considered as separate systems, $n_k = 1 \forall k\in\{1, 2, \cdots, W\}$. \[\sum_{i = 1}^{|T|}x_{ik}(t) \le n_k \ \ \ \forall t\in\{1, 2, \cdots, S\}, \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Strategy constraint: ] This constraint limits system-usage cost per target at stage $t$. $m_i$ depends on performance of available resource $k$ on target $i$. For missile systems, $m_i = 1$, and for artillery systems, $m_1 \ge 1$. \[\sum_{k = 1}^{|W|}x_{ik}(t) \le m_i \ \ \ \forall t\in\{1, 2, \cdots, S\}, \forall i\in\{1, 2, \cdots, |T|\}\]
+    \item[Resource constraint: ] This constraint governs over ammunition availability. \[\sum_{t=1}^S\sum_{i=1}^{|T|}x_{ik}(t)\le N_k, \ \ \ \forall k\in\{1, 2, \cdots, |W|\}\]
+    \item[Engagement feasibility constraint: ] This constraint is over the resource-target relationship: if a target $i$ can be hit by a resource $k$ at stage $t$, then $f_{ik}(t) = 1$, and $f_{ik}(t) = 0$ otherwise.
+    \begin{align*}
+        x_{ik}(t) \le f_{ik}(t), && &\forall t\in\{1, 2, \cdots, S\}, \forall i \in \{1, 2, \cdots, |T|\}
+    \end{align*}
+    \end{center}
+\end{enumerate}
+\end{center}
+\end{itemize}
+
+\section*{An approximate dynamic programming approach for comparing firing policies in a networked air defense environment \cite{Summers2020AnAD}}
+\begin{itemize}
+    \item For the interception of theater ballistic missiles (TBMs), the U.S. Air Force noted that there exists two options for the WTAP: the Markov decision processes, an extension of the Markov chain, and approximate dynamic programming (ADP) for WTAPs involving TBMs.
+    \item For the latter option, there exist two different algorithmic approaches: approximate value iteration and approximate policy iteration (API); the paper uses the latter.
+    \item The API algorithmic strategy maps the system state -- includes incoming target amount, current asset health, and interceptor health -- \\ to reaction fire against incoming targets, specifically how many interceptors to assign to each incoming target.
+    \item MDP Formula:\\
+    Let $\Gamma = \{1, 2, \cdots, T\},\ T \le \infty$, where the number of decision epochs $T$ is random and follows a geometric distribution with parameter $0 \le \gamma < 1$. \\Asset status component $a_t = (a_{ti})_{i\in A}\equiv (a_{t1}, a_{t2}, \cdots, a_{t|A|}$, where set of all assets $A = \{1, 2, \cdots, |A|\}$ and health of asset $a_{ti} \in \{0, 0.25, 0.5, 0.75, 1\}$, with $0$ being destroyed and $1$ being undamaged. \\
+    Let resource inventory component $R_t = (R_{ti})_{i\in A} \equiv (R_{t1}, R_{t2}, \cdots, R_{t|A|})$, with status element $R_{ti} \in \{0,1,\cdots r_i\}$, with
+    \item The MDP formula is too complex to be summarized, please refer to pages 7-10 of the paper.
+    \item There are two value function approximations for API: least squares policy evaluation (LSPE) and least squares temporal difference (LSTD).\\
+    \vspace{-0.25cm}
+    \subsection*{API-LSPE Algorithm}
+    %\eqline
+	\hrule
+    \item[]\begin{center}
+        \begin{enumerate}
+            \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
+            \item[\textbf{Step 1:}]\ \\
+                for $n = 1$ to $N$ (Policy Improvement Loop).\\
+                \begin{enumerate}
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop).
+                \begin{enumerate}
+                    \item Generate a random post-decision state $S_{t-1,k}^x$\ .
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$\ .
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6).
+                    \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
+                    \item Record cost $C(S_{t,k}, x_{t,k})$\ .
+                \end{enumerate}
+                end for\\
+                Update $\theta^n$ and policy:
+            \\$\hat{\theta} = [(\Phi_{t-1})^T(\Phi_{t-1}]^-1(\Phi_{t-1})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
+                \end{enumerate}
+            end for\\
+            Return $X^{\pi_{adp}}(\cdot|\theta^N)$ and $\theta^N$\\
+            End.
+        \end{enumerate}
+    \end{center}
+    \subsection*{API-LSTD Algorithm}
+ 	\hrule
+    \item[] \begin{center}
+        \begin{enumerate}
+            \item[\textbf{Step 0:}] Initialize $\theta^0$\ .
+            \item[\textbf{Step 1:}]\ \\
+                for $n = 1$ to $N$ (Policy Improvement Loop)\\
+                \begin{enumerate}
+                    \item[\textbf{Step 2:}]\ \\for $k=1$ to $K$ (Policy Evaluation Loop).
+                \begin{enumerate}
+                    \item Generate a random post-decision state $S_{t-1,k}^x$ \ .
+                    \item Record basis function evaluation $\phi(S_{t-1,k}^x)$\ .
+                    \item Simulate transition to next pre-decision state $S_{t,k}$ using equation (6).
+                    \item Determine decision $x_{t, k} = X^{\pi_{adp}}(S_{t,k} | \theta^{n-1})$ using equations (5), (7), (9).
+                    \item Record cost $C(S_{t,k}, x_{t,k})$\ .
+                    \item Record next post-decision state $S_{t,k}^x$ with $x_{t,k}$ and equation (5).
+                    \item Record basis function evaluation $\phi(S_{t,k}^x)$\ .
+                \end{enumerate}
+                end for\\
+                Update $\theta^n$ and policy:
+            \\$\hat{\theta} = [(\Phi_{t-1}-\gamma\Phi_{t})^T(\Phi_{t-1}-\gamma\Phi_{t}]^-1(\Phi_{t-1}-\gamma\Phi_{t})^TC_t$\\$\theta^n=a_n\hat{\theta}+(1-a_n)\theta^{n-1}$
+                \end{enumerate}
+            end for\\
+            Return $X^{\pi_{adp}}(\cdot|\theta^N)$ and $\theta^N$\\
+            End.
+        \end{enumerate}
+        \end{center}
+    With equations $5, 6, 7, 9$ being expressed in page 10-11.\\
+    \vspace{0.25cm}
+    \item $\theta$ is a parameter vector created from the set of basis functions $\phi_f(S_t))_{f\in F}$, with $F$ being the set of basis functions that reduces the size of the state variable to the most significant factors.
+\item We also have the basic function vector $\Phi_{t-1} \rightarrow \left[\begin{array}{c} \phi(S_{t-1,1})  \\ \vdots \\ \phi(S_{t-1\,K}^x)\end{array} \right]$ and cost vector $C_{t} \rightarrow \left[\begin{array}{c} C(S_{t,1}) \\ \vdots \\ C(S_{t,K}) \end{array} \right]$.
+\item We can estimate $\theta$ with $a_n = \frac{a}{a+n-1},\ a \in (0, \infty)$
+
+\item Of the two ADP methods and given the standard methods of engagement -- them being the one-target-per-interceptor, or "Match" Policy, and the one-target-per-two-interceptors, or "Overmatch" Policy -- the LSPE algorithm outperforms the standard methods of engaging TBMs when the duration of the engagement is inherently short or the targets have high hit likelihood -- i.e. are high quality. However, the Match Policy outperforms the LSPE algorithm if the engagement is long and the attacker's weapons are of lower quality. The LSTD algorithm follows this same trend.
+\end{itemize}
+\newpage
 \bibliographystyle{apalike}
 \bibliography{LitRev}
-
-
-asdfasdfafdasfd
 
 \end{document}
