@@ -6,6 +6,7 @@ from PlannerProto_pb2 import OutputPb, ShipActionPb,  WeaponPb
 from publisher import Publisher
 
 import random
+import utils
 
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
@@ -22,16 +23,18 @@ class AiManager:
     def __init__(self, publisher:Publisher):
         print("Constructing AI Manager")
         self.ai_pub = publisher
+        self.track_danger_levels = None
+        self.blacklist = set()
    
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg:StatePb):
 
         # Call function to print StatePb information
-        self.printStateInfo(msg)
+        # self.printStateInfo(msg)
 
         # Call function to show example of building an action
         output_message = self.createActions(msg)
-        print(output_message)
+        # print(output_message)
 
         # To advance in step mode, its required to return an OutputPb
         self.ai_pub.publish(output_message)
@@ -43,6 +46,7 @@ class AiManager:
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg:ScenarioConcludedNotificationPb):
+        self.blacklist = set()
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
 
@@ -67,6 +71,76 @@ class AiManager:
 
         return output_message
 
+    def simple_greedy_strategy(self, msg:StatePb):
+         # calculate danger levels
+        DANGER_DISTANCE_SCALE = 10000000
+        TARGETING_CUTOFF = 0.2
+        MAX_DANGER = 100
+
+        self.track_danger_levels = []
+        for track in msg.Tracks:
+            if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
+                # calculate danger value for current track
+                danger_metric = MAX_DANGER
+                for asset in msg.assets:
+                    danger_metric -= utils.distance(asset.PositionX, asset.PositionY, asset.PositionZ, track.PositionX, track.PositionY, track.PositionZ) / DANGER_DISTANCE_SCALE
+                
+                # insert in sorted order
+                loc = 0
+                while loc < len(self.track_danger_levels) - 1 and danger_metric < self.track_danger_levels[0][0]:
+                    loc += 1
+                self.track_danger_levels.insert(loc, (danger_metric, track)) if loc < len(self.track_danger_levels) - 1 else self.track_danger_levels.append((danger_metric, track))
+
+        # print(self.track_danger_levels)
+        # if there are any enemy missiles and we have weapons
+        # and self.track_danger_levels[0][0] > MAX_DANGER * TARGETING_CUTOFF
+        if len(self.track_danger_levels) > 0  and self.weapons_are_available(msg.assets):
+
+            # generate list of unassigned assets
+            unassigned_assets = []
+            for ass in msg.assets:
+                if ass.AssetName != "Galleon_REFERENCE_SHIP" and self.weapons_in_asset(ass):
+                    unassigned_assets.append(ass)
+
+            # find closest asset to danger 
+            s_dist = utils.distance(unassigned_assets[0].PositionX, unassigned_assets[0].PositionY,
+                    unassigned_assets[0].PositionZ, self.track_danger_levels[0][1].PositionX, self.track_danger_levels[0][1].PositionY,
+                    self.track_danger_levels[0][1].PositionZ)
+            s_ass = unassigned_assets[0]
+            for ass in unassigned_assets:
+                c_dist = utils.distance(ass.PositionX, ass.PositionY,
+                    ass.PositionZ, self.track_danger_levels[0][1].PositionX, self.track_danger_levels[0][1].PositionY,
+                    self.track_danger_levels[0][1].PositionZ)
+                if c_dist < s_dist:
+                    s_dist = c_dist
+                    s_ass = ass
+
+            # set up a data response to send later
+            ship_action: ShipActionPb = ShipActionPb()
+
+            # select the target with the highest danger level
+            ship_action.TargetId = self.track_danger_levels[0][1].TrackId       
+
+            # set assetname 
+            ship_action.AssetName = s_ass.AssetName
+
+            self.blacklist.add(self.track_danger_levels[0][1].TrackId)
+
+            print(self.blacklist)
+
+            # random weapon selection
+            rand_weapon = random.choice(s_ass.weapons)
+
+            # randomly scurry around until we have an immediate weapon to launch
+            while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
+                rand_weapon = random.choice(s_ass.weapons)
+
+            ship_action.weapon = rand_weapon.SystemName
+        
+            return [ship_action]
+
+        else:
+            return []
     
     def random_WTA_strategy(self, msg:StatePb):
         """
