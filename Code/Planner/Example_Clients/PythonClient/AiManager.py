@@ -67,11 +67,27 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.random_WTA_strategy(msg))
+        output_message.actions.extend(self.simple_greedy_strategy(msg))
 
         return output_message
 
     def simple_greedy_strategy(self, msg:StatePb):
+        """
+        Random Weapon-Target assignments strategy
+
+        Greedy target selection, asset to shoot from, and weapon type
+
+        Only one weapon is used per timestep.
+
+        Parameters
+        ----------
+        msg: StatePb - received data from the planner
+
+        Returns
+        -------
+        list[ShipAction], each ShipAction indicating a weapon-target assignment
+        """
+
          # calculate danger levels
         DANGER_DISTANCE_SCALE = 10000000
         TARGETING_CUTOFF = 0.2
@@ -125,8 +141,6 @@ class AiManager:
             ship_action.AssetName = s_ass.AssetName
 
             self.blacklist.add(self.track_danger_levels[0][1].TrackId)
-
-            print(self.blacklist)
 
             # random weapon selection
             rand_weapon = random.choice(s_ass.weapons)
