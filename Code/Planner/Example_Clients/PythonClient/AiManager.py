@@ -17,6 +17,14 @@ import utils
 
 # The second part of the function name is the type of proto message it wants to receive, thus proto
 # message names are also protected
+
+
+"""
+Definitions/clarifications:
+
+Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
+"""
+
 class AiManager:
 
     # Constructor
@@ -26,6 +34,7 @@ class AiManager:
         self.track_danger_levels = None
         self.blacklist = set()
    
+
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg:StatePb):
 
@@ -40,10 +49,12 @@ class AiManager:
         self.ai_pub.publish(output_message)
         #self.ai_pub.publish(OutputPb())
 
+        
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
 
+        
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg:ScenarioConcludedNotificationPb):
         self.blacklist = set()
@@ -71,11 +82,10 @@ class AiManager:
 
         return output_message
 
+    
     def simple_greedy_strategy(self, msg:StatePb):
         """
-        Random Weapon-Target assignments strategy
-
-        Greedy target selection, asset to shoot from, and weapon type
+        Greedy target selection based on distance of enemy missile to any asset
 
         Only one weapon is used per timestep.
 
@@ -92,8 +102,12 @@ class AiManager:
         DANGER_DISTANCE_SCALE = 10000000
         TARGETING_CUTOFF = 0.2
         MAX_DANGER = 100
-
+           
+        # list of (danger value, enemy missile info.) tuples
         self.track_danger_levels = []
+        
+        # assign a danger level for each incoming threat and have the threats sorted from most to least dangerous
+        # Danger level is based on the summed distance to all of our assets
         for track in msg.Tracks:
             if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
                 # calculate danger value for current track
@@ -108,44 +122,47 @@ class AiManager:
                 self.track_danger_levels.insert(loc, (danger_metric, track)) if loc < len(self.track_danger_levels) - 1 else self.track_danger_levels.append((danger_metric, track))
 
         # print(self.track_danger_levels)
-        # if there are any enemy missiles and we have weapons
-        # and self.track_danger_levels[0][0] > MAX_DANGER * TARGETING_CUTOFF
+        
+        # if there are any threat and we have weapons
+        # and the most dangerous threat value > MAX_DANGER * TARGETING_CUTOFF
         if len(self.track_danger_levels) > 0  and self.weapons_are_available(msg.assets):
-
-            # generate list of unassigned assets
+            
+            # generate list of our defense ships that aren't targeting and have any weapons left
             unassigned_assets = []
-            for ass in msg.assets:
-                if ass.AssetName != "Galleon_REFERENCE_SHIP" and self.weapons_in_asset(ass):
-                    unassigned_assets.append(ass)
+            for asset in msg.assets:
+                if asset.AssetName != "Galleon_REFERENCE_SHIP" and self.weapons_in_asset(asset):
+                    unassigned_assets.append(asset)
 
-            # find closest asset to danger 
-            s_dist = utils.distance(unassigned_assets[0].PositionX, unassigned_assets[0].PositionY,
-                    unassigned_assets[0].PositionZ, self.track_danger_levels[0][1].PositionX, self.track_danger_levels[0][1].PositionY,
-                    self.track_danger_levels[0][1].PositionZ)
+                    
+            # find closest (s_dist) asset (s_ass) to danger through comparisons
+            
+            # compare to the first asset
             s_ass = unassigned_assets[0]
-            for ass in unassigned_assets:
-                c_dist = utils.distance(ass.PositionX, ass.PositionY,
-                    ass.PositionZ, self.track_danger_levels[0][1].PositionX, self.track_danger_levels[0][1].PositionY,
-                    self.track_danger_levels[0][1].PositionZ)
-                if c_dist < s_dist:
-                    s_dist = c_dist
-                    s_ass = ass
+            most_danger_threat = self.track_danger_levels[0][1]
+            
+            s_dist = utils.distance(s_ass.PositionX, s_ass.PositionY, s_ass.PositionZ, 
+                                    most_danger_threat.PositionX, most_danger_threat.PositionY, most_danger_threat.PositionZ)
+            
+            # comparisons
+            for asset in unassigned_assets:
+                asset_dist = utils.distance(asset.PositionX, asset.PositionY, asset.PositionZ, 
+                                        most_danger_threat.PositionX, most_danger_threat.PositionY, most_danger_threat.PositionZ)
+                if asset_dist < s_dist:
+                    s_dist = asset_dist
+                    s_ass = asset
 
-            # set up a data response to send later
+            # send a response back to the planner
+            
             ship_action: ShipActionPb = ShipActionPb()
-
-            # select the target with the highest danger level
-            ship_action.TargetId = self.track_danger_levels[0][1].TrackId       
-
-            # set assetname 
+            ship_action.TargetId = most_danger_threat.TrackId       
             ship_action.AssetName = s_ass.AssetName
 
-            self.blacklist.add(self.track_danger_levels[0][1].TrackId)
+            self.blacklist.add(most_danger_threat.TrackId)
 
-            # random weapon selection
+            # random weapon selection, but it may not be ready or there may not be any left
             rand_weapon = random.choice(s_ass.weapons)
 
-            # randomly scurry around until we have an immediate weapon to launch
+            # therefore, randomly scurry around until we have an immediate weapon to launch
             while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
                 rand_weapon = random.choice(s_ass.weapons)
 
@@ -155,6 +172,7 @@ class AiManager:
 
         else:
             return []
+    
     
     def random_WTA_strategy(self, msg:StatePb):
         """
@@ -213,11 +231,13 @@ class AiManager:
             if self.weapons_in_asset(asset): return True
         return False 
 
+    
     def weapons_in_asset(self, asset:AssetPb):
         for weapon in asset.weapons:
             if weapon.Quantity > 0: return True
         return False
 
+    
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg:StatePb):
         print("Time: " + str(msg.time))
