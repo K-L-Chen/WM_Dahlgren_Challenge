@@ -1,0 +1,3 @@
+- [PyGAD](https://pygad.readthedocs.io/en/latest/)
+- [numpy](https://pypi.org/project/numpy/)
+- [pyHarmonySearch](https://pypi.org/project/pyHarmonySearch/)

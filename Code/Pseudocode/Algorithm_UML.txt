@@ -1,0 +1,56 @@
+***PASTE THE FOLLOWING INTO PLANT UML TO GENERATE THE RIGHT UML DIAGRAM***
+@startuml
+class Weapon{
+    __ Constructors __
+    Weapons(weapon_type)
+
+    __ Fields __
+    set(Action) actionSet
+
+    __ Methods __
+    request(Weapon_System, Target): (Weapon_System, Target, Action)[]
+}
+
+class Action{
+    __ Constructors __
+    Action()
+
+    __ Fields __
+    double prediction
+    double predictionError
+    double Fitness
+    some encoding for the if-then?????
+
+    __ Methods __
+    init(): void
+    update(): void
+    accuracy(): double
+    relative_accuracy(): double
+}
+
+class ControlCenter{
+    __ Constructors __
+    ControlCenter()
+
+    __ Fields __
+
+    __ Methods __
+    init(set((Weapon_System, Target, Action))): void
+    apply(): (Weapon_System, Target, Action)[]
+}
+
+enum Weapon_System{
+    tuple location
+}
+
+enum Target{
+    tuple location
+}
+
+Weapon <-- Weapon_System: Uses
+Weapon <-- Action: Has a set of 
+Weapon <-- Target: Uses
+ControlCenter <-- Target: Uses
+ControlCenter <-- Action: Uses
+ControlCenter <-- Weapon_System: Uses
+@enduml
