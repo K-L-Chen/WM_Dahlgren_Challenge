@@ -4,78 +4,15 @@ The following is a proposed algorithm for the competition, based on the immunize
 - Target: An enemy projectile we want to take down.
 - Units: Our friendly ships.
 
-## Variables/Main Ideas
-
-### The ```Weapon``` Class
-The ```Weapon``` class is ```static```, and handles decision making for a specific type of weapon. For example, since we have Chainshot and Cannonball as the two types of weapon systems at our disposal, we would have a ```Weapon``` class in charge of Chainshot logic, and another in charge of Cannonball logic. 
-
-This class is analogous to the B-cell from the immunized classifier paper. 
-
-Each weapon system that our in-game units have will have access to the ```Weapon``` object that corresponds to its weapon type. From a call to the ```request()``` function, the ```Weapon``` object will get information about the location, direction, threat-level, and type of a target and the location/capabilities of the specific weapon system, and will choose an appropriate subset of its ```Action``` objects for consideration. It will return a set of tuples of the following format: ( weapon_system, target, ```Action``` ).
-
-The ```request()``` function will use the following formula to calculate expected action payoff values for the subset of this ```Weapon``` object's ```Action``` set that applies to this target. 
-
-Expected action payoff: $$P(a_i) = \frac{\sum_{cl_{k} \in [M] | a_i} cl_{k}.p \cdot cl_k.F \cdot \omega}{\sum_{cl_{k} \in [M] | a_i} cl_l.F \cdot \omega}$$ 
-
-Where $\omega$ is the affinity between this ```Weapon``` object's weapon-type and the type of target: $$\omega = [1 - \prod^{q}_{i=1}(1-d_g p_g w_e r_t)] \cdot v_c$$
-
-In the above affinity equation,
-- $q$ is the quantity of ammo suggested by the classifer
-- $d_g$ is the normalized distance between target $c$ and this specfic weapon system's location
-- $p_g$ is the speed advantage of the fire unit weapon against the target
-- $w_e$ is the kill probability of the weapon suggested
-- $r_t$ is the ready time of the weapon if it were to be deployed
-- $v_c$ is the value of the target
-
-After calculating expected action payoff values, it will return the top $k$ ```Action``` objects with the highest expected action payoff. 
-
-### The ```Action``` Class
-Each ```Action``` is a wrapper around a specialized if-then statement. It has a set of conditionals describing the state of units and ships. 
-
-This is analogous to the classifier from the immunized classifer paper. 
-
-An ```Action``` object could look like this: "IF distance from target IS low AND velocity IS medium AND heading IS high THEN fire".
-
-It is also the candidate that the genetic algorithm will evolve over time, and also contains pertinent variables. These variables are outlined below, with their update functions. These update functions will be called with the ```Action``` class' ```update()``` function. 
-- Prediction $cl.p: cl.p = cl.p + \beta(R-cl.p)$
-- Prediction Error  $cl.\epsilon : cl.\epsilon = cl.\epsilon + \beta(|R-cl.p| - cl.\epsilon)$, where $R$ is the reward associated with performing a specific action. 
-- Fitness $cl.F : cl.F = cl.F + \beta(\hat{\lambda}(cl) - cl.F)$
-- Accuracy $\lambda(cl)$, where $\epsilon_0$ is an accuracy criterion constant. A classifier is accurate if $cl.\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyper-parameters used to control the rate at which the accuracy reduces.$$\lambda (cl) = \begin{cases} 1 & \text{if } cl.\epsilon < \epsilon_0 \\ \alpha(\frac{cl.\epsilon}{\epsilon_0})^{-v} & \text{if } cl.\epsilon \geq \epsilon_0 \end{cases}$$
-- Relative accuracy $\hat{\lambda}(cl): \hat{\lambda}(cl) = \frac{cl.n \times \lambda(cl)}{\sigma_{cl_b \in [A]} \lambda(b) \times b.n}$
-
-### The ```ControlCenter``` Class
-The control center takes a set of all proposed (weapon_system, target, ```Action```) tuples and selects the optimal ones to use. To choose the right ```Action``` objects to take, the ControlCenter could use immune network dynamics. 
-
-Using ```init(possible_actions)```, we pass a set of tuples of the format ( weapon_system, target, ```Action``` ) so that the ControlCenter can link tuples of the same target together.
-
-Then, once ```apply()``` is called, it will apply immune network dynamics and return a list of the best ```Action``` for each target. The following system of ODEs governs immune network dynamics: 
-For ```Action``` $a_i$ at time $t$, we have:
-$$\frac{da_i(t+1)}{dt} = \left(\alpha \sum^{N}_{j=1}m_{ji}a_j(t) - \beta\sum^{N}_{j=1}m_{ik}a_k(t) + \gamma m_i - k\right) a_i(t)$$
-- $N$ is the number of ```Action``` objects that deal with the target
-- $m_i$ is the affinity between ```Action``` $i$ and the target antigen
-- $m_{ji}$ is the mutual stimulus coefficient of ```Action``` $j$ on ```Action``` $i$
-- $m_{ki}$ is the inhibitory effect of ```Action``` $k$ on ```Action``` $i$
-- Hyperparameter $k$ is the natural death rate of ```Action``` $i$
-- $a_i(t)$, $a_j(t)$, and $a_k(t)$ are bounded scores that are imposed on the ```Action``` objects
-- coefficients $\alpha$, $\beta$, and $\gamma$ are hyperparameters that determine the significance of each term. 
-
-The solution to this set of ODE's will yield the score for each ```Action```, and the top one for each target is chosen to be executed.
-
-### UML Diagram
-![UML Diagram](UML_diagram.png)
-Here is a UML diagram of the proposed classes, there might be some missing fields/methods. 
-
-## Training
-The goal of using the genetic algorithm and harmony search is to discover the right ```Action``` class conditionals to use and the right hyperparameters to use to select the right ```Action``` at any step.  
-
 ## Algorithm
 
 This is how we will initialize our AI:
 ```python
-# make a new Weapon object for each weapon_type
-Weapons = dict()
-for weapon_type in WeaponTypes:
-    Weapons[weapons_type] = Weapon(weapons_type)
+# make a new weapon A.I. object for each weapon_type
+# in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
+weapon_AIs = dict()
+for weapon_type in WEAPON_TYPES:
+    weapon_AIs[weapon_type] = Weapon_AI(weapon_type)
     
 control_center = ControlCenter()
 ```
@@ -84,29 +21,120 @@ control_center = ControlCenter()
 This is the algorithm that we will run at each step:
 ```python
 # create set of possible actions against target
-possible_target_actions = set()
+target_actions = list()
 
-# for each target that we can detect right now
-for target in State:
-    # for each weapon system on our units
-    for weapon_system in State: 
-        # get a set of proposed ( weapon_system, target, Action ) tuples for the target
-        proposed_actions = Weapons[weapon_system.type].request(weapon_system, target)
-        possible_target_actions.add(proposed_actions)
+for target in statePb.Tracks:
+    current_target_actions = set()
+    for defense_ship in statePb.assets:
+        for weapon in defense_ship.weapons: 
+            # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
+            proposed_actions = weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
+            possible_target_actions.add(proposed_actions)
+    target_actions.append(current_target_actions)
     
 # initialize and apply immune system dynamics to get the top Actions
-ControlCenter.init(possible_target_actions)
-best_actions = ControlCenter.apply()
+best_actions = ControlCenter.decide(target_actions)
 
 #execute the best actions to get a reward
 reward = execute(best_actions)
 ```
 
-If we are training the algorithm, we will use the ```reward``` variable and ```best_actions ``` variable to update the fitness values for each ```Action``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action``` objects. 
+If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```ActionRule``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```ActionRule``` objects. 
 
 ```python
+accuracy_sum = 0 
 for action in best_actions:
-    action.update(reward)
+    accuracy_sum += action.update_predicted_values(reward)
+
+for action in best_actions:
+    action.update(update_fitness)
 
 # do Genetic Algorithm OR Harmony Search here!
 ```
+## Training
+The goal of using the genetic algorithm and harmony search is to discover the right ```ActionRule``` class conditionals to use and the right hyperparameters to use to select the right ```ActionRule``` at any step.  
+
+## Classes/Main Ideas
+
+### The ```Weapon_AI``` Class
+The ```Weapon_AI``` class handles decision making for a specific type of weapon. For example, since we have ```Chainshot``` and ```Cannonball``` as the two types of weapon systems at our disposal, we would have a ```Weapon_AI``` object in charge of ```Chainshot``` logic, and another in charge of ```Cannonball``` logic. 
+
+This class is analogous to the B-cell from the immunized classifier paper. 
+
+#### Fields
+- ```string my_type``` - this object's assigned type, for our purposes, either ```Chainshot``` or ```Cannonball```. 
+- ```set(ActionRule) action_set``` — contains all ```ActionRule``` objects for this type of weapon. 
+
+#### ```Weapon_AI(filename=fname) : Weapon_AI```
+The constructor for this class initializes ```action_set```, defaulting to randomly generating the ```ActionRule``` objects contained within, but if a file is specified, it will fetch the information from a file and initialize them that way. 
+
+#### ```request(weapon, ship, target) : set((weapon_system, ship, target, ActionRule))```
+Through this function, each weapon in-game can make a request to the ```Weapon_AI``` object that corresponds to its weapon type. From its parameters, the ```request()``` function has access to the location, direction, threat-level, and type of a target and the location/capabilities of the specific weapon, and will choose an appropriate subset of its ```ActionRule``` objects having conditionals that match the situation. It will return a set of tuples of the following format: ( weapon_system, ship, target, ```ActionRule``` ).
+
+#### ```save_rules(filename) : void```
+This function saves all rules to a file named ```filename```, overwriting that file if it already exists, and creating it if it does not. 
+
+### The ```ActionRule``` Class
+The ```ActionRule``` class encodes logic for a decision to fire. Each ```ActionRule``` object is a wrapper around a specialized if-then statement. It has a set of conditionals describing the state of units and ships. It is also the candidate that the genetic algorithm will evolve over time, and also contains pertinent variables. 
+
+An ```ActionRule``` object could look like this: "IF distance from target IS low AND velocity IS medium AND heading IS high THEN fire". Since any one weapon could only fire or not fire at any time step, the consequent of this conditional is always fire. 
+
+This is analogous to the classifier from the immunized classifer paper.  
+
+#### Fields
+- TODO: Figure out how to encode conditionals for this class. 
+- ```double predicted_value``` — predicted value ($p$) if this ActionRule is employed, initialized to 0. Its update function is $p: p = p + \beta(R-p)$ 
+- ```double predicted_val_error``` — expected error ($\epsilon$) for ```predicted_value```, initialized to 0. Its update function is $\epsilon : \epsilon = \epsilon + \beta(|R-p| - \epsilon)$
+- ```double fitness``` — the fitness ($F$) for this rule, used for genetic algorithm training purposes. Initialized to 0. Its update function is $F : F = F + \beta(\hat{\lambda}(cl) - F)$
+- ```double accuracy``` — the accuracy ($\lambda$) for this rule, used to calculate ```fitness```, where $\epsilon_0$ is an accuracy criterion constant, a hyperparameter. A classifier is accurate if $\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyperparameters used to control the rate at which the accuracy reduces. 
+
+$$\lambda (cl) = \begin{cases} 
+1 & \text{if } \epsilon < \epsilon_0 \\ 
+\alpha(\frac{\epsilon}{\epsilon_0})^{-v} & \text{if } \epsilon \geq \epsilon_0 \end{cases}$$
+
+- ```double relative_accuracy``` — denoted by $\hat{\lambda}$. The accuracy for this rule, relative to other rules. Used to calculate ```fitness```. Relative accuracy is calculated using $\hat{\lambda}: \hat{\lambda} = \frac{\lambda}{\sum_{cl_b \in [A]} \lambda_b}$. The denominator is the sum of all ```accuracy``` fields in all other actions that were executed at the same time step. 
+
+#### ```update_predicted_values(reward) : accuracy```
+Given the ```reward``` from an action (TODO: Is this accurate? Does this make sense for training the genetic algorithm?), update ```predicted_value```, ```predicted_val_error```, and ```accuracy```. Return ```accuracy```. 
+
+#### ```update_fitness(accuracy_sum) : void```
+Given the ```accuracy_sum```, the sum of ```accuracy``` values for all other ```ActionRules``` that were executed at the same time step, update ```relative_accuracy``` and ```fitness```. 
+
+### The ```ControlCenter``` Class
+The ```ControlCenter```'s role is to make overarching decisions, authorizing each weapon to fire at targets. 
+
+#### ```ControlCenter()```
+A constructor for ```ControlCenter```.
+
+#### ```decide(list[set(weapon_system, ship, target, ActionRule)]) : list[weapon_system, ship, target, ActionRule]```
+This function takes a list of sets of all proposed (weapon_system, ship, target, ```ActionRule```) tuples as an argument. Each element of the list will be a set of (weapon_system, ship, target, ```ActionRule```) tuples that corresponds to a single target. Using this list, the ```ControlCenter``` decides on the best action to take for each target, and returns the selected actions as a list of (weapon_system, ship, target, ```ActionRule```) tuples. 
+
+To choose the right ```ActionRule``` objects to take, the ControlCenter could use immune network dynamics. 
+
+For ```ActionRule``` $a_i$ at time $t$, we have:
+
+$$\frac{da_i(t+1)}{dt} = \left( \alpha \sum^{N}_{j=1} m_{ji} a_j(t) - \beta \sum^{N}_{j=1} m_{ik} a_k(t) + \gamma m_i - k \right) a_i(t)$$
+
+- $N$ is the number of ```ActionRule``` objects that deal with the target
+- $m_i$ is the affinity between ```ActionRule``` $i$ and the target antigen
+- $m_{ji}$ is the mutual stimulus coefficient of ```ActionRule``` $j$ on ```ActionRule``` $i$
+- $m_{ki}$ is the inhibitory effect of ```ActionRule``` $k$ on ```ActionRule``` $i$
+- Hyperparameter $k$ is the natural death rate of ```ActionRule``` $i$
+- $a_i(t)$, $a_j(t)$, and $a_k(t)$ are bounded scores that are imposed on the ```ActionRule``` objects
+- coefficients $\alpha$, $\beta$, and $\gamma$ are hyperparameters that determine the significance of each term. 
+
+The solution to this set of ODE's will yield the score for each ```ActionRule```, and the top one for each target is chosen to be executed.
+
+## To Discuss:
+- **Question:** What do we do with targets that have already been fired at? 
+
+
+## To Do: 
+- Create method of encoding conditionals in the ```ActionRule``` class. 
+    - Figure out what values should be considered for ```ActionRule``` conditionals.
+    - Create and implement a good encoding scheme for the conditionals. 
+- Create method of saving ```Weapon_AI``` objects to file (saving our progress).
+    - Create constructor for ```ActionRule``` with manually specified parameters for this purpose. 
+    - Finish ```save_rules(filename=fname)```
+- Find out how to train this algorithm using both Harmony Search and Genetic Algorithm.
+    - **Question:** How do we determine the reward for an action? 
