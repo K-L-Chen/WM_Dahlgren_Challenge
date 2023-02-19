@@ -7,7 +7,7 @@ The following is a proposed algorithm for the competition, based on the immunize
 ## Variables/Main Ideas
 
 ### The ```Weapon``` Class
-The ```Weapon``` class is ```static```, and handles decision making for a specific type of weapon. For example, since we have Chainshot and Cannonball as the two types of weapon systems at our disposal, we would have a ```Weapon``` class in charge of Chainshot logic, and another in charge of Cannonball logic. 
+A specific instance of a ```Weapon``` class handles decision making for a specific type of weapon. For example, since we have Chainshot and Cannonball as the two types of weapon systems at our disposal, we would have a ```Weapon``` class in charge of Chainshot logic, and another in charge of Cannonball logic. 
 
 This class is analogous to the B-cell from the immunized classifier paper. 
 
@@ -63,6 +63,7 @@ The solution to this set of ODE's will yield the score for each ```Action```, an
 
 ### UML Diagram
 ![UML Diagram](UML_diagram.png)
+
 Here is a UML diagram of the proposed classes, there might be some missing fields/methods. 
 
 ## Training
@@ -102,7 +103,7 @@ best_actions = ControlCenter.apply()
 reward = execute(best_actions)
 ```
 
-If we are training the algorithm, we will use the ```reward``` variable and ```best_actions ``` variable to update the fitness values for each ```Action``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action``` objects. 
+If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```Action``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action``` objects. 
 
 ```python
 for action in best_actions:
