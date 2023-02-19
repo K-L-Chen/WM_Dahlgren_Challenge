@@ -85,7 +85,12 @@ It is also the candidate that the genetic algorithm will evolve over time, and a
 - Prediction $cl.p: cl.p = cl.p + \beta(R-cl.p)$
 - Prediction Error  $cl.\epsilon : cl.\epsilon = cl.\epsilon + \beta(|R-cl.p| - cl.\epsilon)$, where $R$ is the reward associated with performing a specific action. 
 - Fitness $cl.F : cl.F = cl.F + \beta(\hat{\lambda}(cl) - cl.F)$
-- Accuracy $\lambda(cl)$, where $\epsilon_0$ is an accuracy criterion constant. A classifier is accurate if $cl.\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyper-parameters used to control the rate at which the accuracy reduces. $$\lambda (cl) = \begin{cases} 1 & \text{if } cl.\epsilon < \epsilon_0 \\ \alpha(\frac{cl.\epsilon}{\epsilon_0})^{-v} & \text{if } cl.\epsilon \geq \epsilon_0 \end{cases}$$
+- Accuracy $\lambda(cl)$, where $\epsilon_0$ is an accuracy criterion constant. A classifier is accurate if $cl.\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyper-parameters used to control the rate at which the accuracy reduces. 
+
+$$\lambda (cl) = \begin{cases} 
+1 & \text{if } cl.\epsilon < \epsilon_0 \\ 
+\alpha(\frac{cl.\epsilon}{\epsilon_0})^{-v} & \text{if } cl.\epsilon \geq \epsilon_0 \end{cases}$$
+
 - Relative accuracy $\hat{\lambda}(cl): \hat{\lambda}(cl) = \frac{cl.n \times \lambda(cl)}{\sigma_{cl_b \in [A]} \lambda(b) \times b.n}$
 
 ### The ```ControlCenter``` Class
@@ -95,7 +100,9 @@ Using ```init(possible_actions)```, we pass a set of tuples of the format ( weap
 
 Then, once ```apply()``` is called, it will apply immune network dynamics and return a list of the best ```Action``` for each target. The following system of ODEs governs immune network dynamics: 
 For ```Action``` $a_i$ at time $t$, we have:
+
 $$\frac{da_i(t+1)}{dt} = \left( \alpha \sum^{N}_{j=1} m_{ji} a_j(t) - \beta \sum^{N}_{j=1} m_{ik} a_k(t) + \gamma m_i - k \right) a_i(t)$$
+
 - $N$ is the number of ```Action``` objects that deal with the target
 - $m_i$ is the affinity between ```Action``` $i$ and the target antigen
 - $m_{ji}$ is the mutual stimulus coefficient of ```Action``` $j$ on ```Action``` $i$
