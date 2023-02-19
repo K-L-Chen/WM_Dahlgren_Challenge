@@ -13,6 +13,11 @@ This is how we will initialize our AI:
 weapon_AIs = dict()
 for weapon_type in WEAPON_TYPES:
     weapon_AIs[weapon_type] = Weapon_AI(weapon_type)
+# make a new weapon A.I. object for each weapon_type
+# in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
+weapon_AIs = dict()
+for weapon_type in WEAPON_TYPES:
+    weapon_AIs[weapon_type] = Weapon_AI(weapon_type)
     
 control_center = ControlCenter()
 ```
@@ -22,7 +27,16 @@ This is the algorithm that we will run at each step:
 ```python
 # create set of possible actions against target
 target_actions = list()
+target_actions = list()
 
+for target in statePb.Tracks:
+    current_target_actions = set()
+    for defense_ship in statePb.assets:
+        for weapon in defense_ship.weapons: 
+            # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
+            proposed_actions = weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
+            possible_target_actions.add(proposed_actions)
+    target_actions.append(current_target_actions)
 for target in statePb.Tracks:
     current_target_actions = set()
     for defense_ship in statePb.assets:
@@ -39,6 +53,7 @@ best_actions = ControlCenter.decide(target_actions)
 reward = execute(best_actions)
 ```
 
+If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```Action_Rule``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action_Rule``` objects. 
 If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```ActionRule``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```ActionRule``` objects. 
 
 ```python
