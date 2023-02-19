@@ -21,14 +21,16 @@ control_center = ControlCenter()
 This is the algorithm that we will run at each step:
 ```python
 # create set of possible actions against target
-possible_target_actions = set()
+target_actions = list()
 
 for target in statePb.Tracks:
+    current_target_actions = set()
     for defense_ship in statePb.assets:
         for weapon in defense_ship.weapons: 
-            # get a set of proposed ( weapon, defense_ship, target, Action ) tuples for the target
+            # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
             proposed_actions = weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
             possible_target_actions.add(proposed_actions)
+    target_actions.append(current_target_actions)
     
 # initialize and apply immune system dynamics to get the top Actions
 ControlCenter.init(possible_target_actions)
@@ -38,7 +40,7 @@ best_actions = ControlCenter.apply()
 reward = execute(best_actions)
 ```
 
-If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```Action``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action``` objects. 
+If we are training the algorithm, we will use the ```reward``` variable and ```best_actions``` variable to update the fitness values for each ```Action_Rule``` that was executed, and use either Genetic Algorithm or Harmony Search to fine tune the ```Action_Rule``` objects. 
 
 ```python
 for action in best_actions:
@@ -47,7 +49,7 @@ for action in best_actions:
 # do Genetic Algorithm OR Harmony Search here!
 ```
 ## Training
-The goal of using the genetic algorithm and harmony search is to discover the right ```Action``` class conditionals to use and the right hyperparameters to use to select the right ```Action``` at any step.  
+The goal of using the genetic algorithm and harmony search is to discover the right ```Action_Rule``` class conditionals to use and the right hyperparameters to use to select the right ```Action_Rule``` at any step.  
 
 ## Variables/Main Ideas
 
@@ -56,23 +58,9 @@ A specific instance of a ```Weapon_AI``` class handles decision making for a spe
 
 This class is analogous to the B-cell from the immunized classifier paper. 
 
-Each weapon system in-game have will "have access" to the ```Weapon_AI``` object that corresponds to its weapon type. From a call to the ```request()``` function, the ```Weapon_AI``` object will get information about the location, direction, threat-level, and type of a target and the location/capabilities of the specific weapon system, and will choose an appropriate subset of its ```Action``` objects for consideration. It will return a set of tuples of the following format: ( weapon_system, target, ```Action``` ).
+The constructor for this class initializes a set of 
 
-The ```request()``` function will use the following formula to calculate expected action payoff values for the subset of this ```Weapon_AI``` object's ```Action``` set that applies to this target. 
-
-Expected action payoff: $$P(a_i) = \frac{\sum_{cl_{k} \in [M] | a_i} cl_{k}.p \cdot cl_k.F \cdot \omega}{\sum_{cl_{l} \in [M] | a_i} cl_l.F \cdot \omega}$$ 
-
-Where $\omega$ is the affinity between this ```Weapon_AI``` object's weapon-type and the type of target: $$\omega = [1 - \prod^{q}_{i=1}(1-d_g p_g w_e r_t)] \cdot v_c$$
-
-In the above affinity equation,
-- $q$ is the quantity of ammo suggested by the classifer
-- $d_g$ is the normalized distance between target $c$ and this specfic weapon system's location
-- $p_g$ is the speed advantage of the fire unit weapon against the target
-- $w_e$ is the kill probability of the weapon suggested
-- $r_t$ is the ready time of the weapon if it were to be deployed
-- $v_c$ is the value of the target
-
-After calculating expected action payoff values, it will return the top $k$ ```Action``` objects with the highest expected action payoff. 
+Each weapon in-game can make a request to the ```Weapon_AI``` object that corresponds to its weapon type. From its parameters, the ```request()``` function has access to the location, direction, threat-level, and type of a target and the location/capabilities of the specific weapon, and will choose an appropriate subset of its ```Action_Rule``` objects having conditionals that match the situation. It will return a set of tuples of the following format: ( weapon_system, ship, target, ```Action_Rule``` ). After compiling this set of tuples, the ```request()``` function will use the following formula to calculate expected action payoff values for the subset of this ```Weapon_AI``` object's ```Action_Rule``` set that applies to this target. 
 
 ### The ```Action_Rule``` Class
 Each ```Action_Rule``` object is a wrapper around a specialized if-then statement. It has a set of conditionals describing the state of units and ships. 
@@ -94,24 +82,24 @@ $$\lambda (cl) = \begin{cases}
 - Relative accuracy $\hat{\lambda}(cl): \hat{\lambda}(cl) = \frac{cl.n \times \lambda(cl)}{\sigma_{cl_b \in [A]} \lambda(b) \times b.n}$
 
 ### The ```ControlCenter``` Class
-The control center takes a set of all proposed (weapon_system, target, ```Action```) tuples and selects the optimal ones to use. To choose the right ```Action``` objects to take, the ControlCenter could use immune network dynamics. 
+The control center takes a set of all proposed (weapon_system, target, ```Action_Rule```) tuples and selects the optimal ones to use. To choose the right ```Action_Rule``` objects to take, the ControlCenter could use immune network dynamics. 
 
-Using ```init(possible_actions)```, we pass a set of tuples of the format ( weapon_system, target, ```Action``` ) so that the ControlCenter can link tuples of the same target together.
+Using ```init(possible_actions)```, we pass a set of tuples of the format ( weapon_system, target, ```Action_Rule``` ) so that the ControlCenter can link tuples of the same target together.
 
-Then, once ```apply()``` is called, it will apply immune network dynamics and return a list of the best ```Action``` for each target. The following system of ODEs governs immune network dynamics: 
-For ```Action``` $a_i$ at time $t$, we have:
+Then, once ```apply()``` is called, it will apply immune network dynamics and return a list of the best ```Action_Rule``` for each target. The following system of ODEs governs immune network dynamics: 
+For ```Action_Rule``` $a_i$ at time $t$, we have:
 
 $$\frac{da_i(t+1)}{dt} = \left( \alpha \sum^{N}_{j=1} m_{ji} a_j(t) - \beta \sum^{N}_{j=1} m_{ik} a_k(t) + \gamma m_i - k \right) a_i(t)$$
 
-- $N$ is the number of ```Action``` objects that deal with the target
-- $m_i$ is the affinity between ```Action``` $i$ and the target antigen
-- $m_{ji}$ is the mutual stimulus coefficient of ```Action``` $j$ on ```Action``` $i$
-- $m_{ki}$ is the inhibitory effect of ```Action``` $k$ on ```Action``` $i$
-- Hyperparameter $k$ is the natural death rate of ```Action``` $i$
-- $a_i(t)$, $a_j(t)$, and $a_k(t)$ are bounded scores that are imposed on the ```Action``` objects
+- $N$ is the number of ```Action_Rule``` objects that deal with the target
+- $m_i$ is the affinity between ```Action_Rule``` $i$ and the target antigen
+- $m_{ji}$ is the mutual stimulus coefficient of ```Action_Rule``` $j$ on ```Action_Rule``` $i$
+- $m_{ki}$ is the inhibitory effect of ```Action_Rule``` $k$ on ```Action_Rule``` $i$
+- Hyperparameter $k$ is the natural death rate of ```Action_Rule``` $i$
+- $a_i(t)$, $a_j(t)$, and $a_k(t)$ are bounded scores that are imposed on the ```Action_Rule``` objects
 - coefficients $\alpha$, $\beta$, and $\gamma$ are hyperparameters that determine the significance of each term. 
 
-The solution to this set of ODE's will yield the score for each ```Action```, and the top one for each target is chosen to be executed.
+The solution to this set of ODE's will yield the score for each ```Action_Rule```, and the top one for each target is chosen to be executed.
 
 ### UML Diagram
 ![UML Diagram](UML_diagram.png)
