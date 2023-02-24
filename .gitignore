@@ -16,3 +16,12 @@ TextFiles/DahlgrenChallengeLitRev.blg
 *.pyc
 ~$Planner_Instruction_Manual.pptx
 venv
+
+# PyCharm files
+/.idea/
+/.idea/misc.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
+/.idea/WM_Dahlgren_Challenge.iml
+/.idea/modules.xml
+.idea/modules.xml
