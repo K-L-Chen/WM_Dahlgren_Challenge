@@ -1,7 +1,4 @@
-
-
-class ActionRule:
-    """
+"""
     The ActionRule class encodes logic for a decision to fire. Each ActionRule object is a wrapper around a specialized
     if-then statement. It has a set of conditionals describing the state of units and ships. It is also the candidate
     that the genetic algorithm will evolve over time, and also contains pertinent variables.
@@ -15,6 +12,9 @@ class ActionRule:
     This is analogous to the classifier from the immunized classifier paper.
     """
 
+
+class ActionRule:
+    # fields for updating ActionRule fitness
     predicted_value = 0.0
     predicted_val_error = 0.0
     fitness = 0.0

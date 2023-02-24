@@ -1,4 +1,6 @@
 # Imports
+from Code.Planner.Example_Clients.MetaheuristicClient.ControlCenter import ControlCenter
+from Code.Planner.Example_Clients.MetaheuristicClient.WeaponAI import WeaponAI
 from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
     ScenarioInitializedNotificationPb  # Scenario start/end notifications
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
@@ -24,6 +26,9 @@ Definitions/clarifications:
 Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
 """
 
+WEAPON_TYPES = ["Cannon", "Chainshot"]
+TRAINING = True
+
 
 class AiManager:
 
@@ -33,6 +38,14 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
+
+        # make a new weapon A.I. object for each weapon_type
+        # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
+        self.weapon_AIs = dict()
+        for weapon_type in WEAPON_TYPES:
+            self.weapon_AIs[weapon_type] = WeaponAI(weapon_type)
+
+        self.control_center = ControlCenter()
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
@@ -81,11 +94,39 @@ class AiManager:
     def metaheuristic(self, msg: StatePb):
         """
         This is the decision-making component of the meta-heuristic algorithm detailed in /Pseudocode/Algorithm.md
-
         """
+        # create set of possible actions against target
+        target_actions = list()
 
+        for target in msg.Tracks:
+            current_target_actions = set()
+            for defense_ship in msg.assets:
+                for weapon in defense_ship.weapons:
+                    # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
+                    proposed_actions = self.weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
+                    target_actions.append(proposed_actions)
+            target_actions.append(current_target_actions)
 
-    # Helper methods for determining whether any weapons are left 
+        # initialize and apply immune system dynamics to get the top Actions
+        best_actions = ControlCenter.decide(target_actions)
+
+        # execute the best actions to get a reward
+        # reward = execute(best_actions)
+        # TODO: execute the best actions, make it so this line is uncommented and implement the details
+
+        if TRAINING:
+            accuracy_sum = 0
+            for action in best_actions:
+                # accuracy_sum += action.update_predicted_values(reward)
+                print("placeholder, uncomment the above line after finishing the above TODO")
+
+            for action in best_actions:
+                action.update_fitness(accuracy_sum)
+
+            # do Genetic Algorithm OR Harmony Search here!
+            # TODO: Implement GA, HS, or some other update to use here.
+
+    # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]):
         for asset in assets:
             if self.weapons_in_asset(asset): return True

@@ -4,9 +4,15 @@ import zmq
 from zmq.sugar.frame import Message
 import PlannerProto_pb2 as proto_messages
 
-# Class to send messages to the Planner
+"""
+This class sends messages to the Planner.
+
+We shouldn't have to modfiy this file. 
+"""
+
+
 class Publisher:
-    
+
     # Constructor
     def __init__(self):
         print("Constructing publisher")
@@ -18,10 +24,10 @@ class Publisher:
     # Puts message into proper protobuf container
     def package(self, msg: Message):
         simpleName = type(msg).__name__
-        container:proto_messages.MsgContainerPb = proto_messages.MsgContainerPb()
-        header:proto_messages.MsgHeaderPb = container.Header
+        container: proto_messages.MsgContainerPb = proto_messages.MsgContainerPb()
+        header: proto_messages.MsgHeaderPb = container.Header
         header.Id = self.msgNum
-        self.msgNum+=1
+        self.msgNum += 1
         header.ContentType = simpleName
         any = container.Content.Pack(msg)
         print(f"Publishing {simpleName}")
@@ -32,11 +38,3 @@ class Publisher:
         container = self.package(msg)
         bytes = container.SerializeToString()
         self.socket.send(bytes)
-
-
-
-
-
-
-
-
