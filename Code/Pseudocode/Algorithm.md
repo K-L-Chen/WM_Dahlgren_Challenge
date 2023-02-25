@@ -84,10 +84,11 @@ This is analogous to the classifier from the immunized classifer paper.
 
 #### Fields
 - TODO: Figure out how to encode conditionals for this class. 
-- ```double predicted_value``` — predicted value ($p$) if this ActionRule is employed, initialized to 0. Its update function is $p: p = p + \beta(R-p)$ 
+- ```double predicted_value``` — predicted value ($p$) if this ActionRule is employed, initialized to 0. Its update function is $p: p = p + \beta(R-p)$. 
 - ```double predicted_val_error``` — expected error ($\epsilon$) for ```predicted_value```, initialized to 0. Its update function is $\epsilon : \epsilon = \epsilon + \beta(|R-p| - \epsilon)$
 - ```double fitness``` — the fitness ($F$) for this rule, used for genetic algorithm training purposes. Initialized to 0. Its update function is $F : F = F + \beta(\hat{\lambda}(cl) - F)$
 - ```double accuracy``` — the accuracy ($\lambda$) for this rule, used to calculate ```fitness```, where $\epsilon_0$ is an accuracy criterion constant, a hyperparameter. A classifier is accurate if $\epsilon$ is smaller than $\epsilon_0$. $\alpha$ and $v$ are hyperparameters used to control the rate at which the accuracy reduces. 
+- ```double beta``` — step size for update functions, could add this field as an argument to ```update_predicted_values(reward)``` in the future if we want a variable step size. 
 
 $$\lambda (cl) = \begin{cases} 
 1 & \text{if } \epsilon < \epsilon_0 \\ 

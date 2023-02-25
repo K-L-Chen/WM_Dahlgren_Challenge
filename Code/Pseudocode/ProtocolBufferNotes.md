@@ -8,6 +8,8 @@ returns an output protocol-buffer (OutputPb)
 ## StatePb
 - assets : our weapons & ships -> assetPb
 - tracks : in what way are assets moving -> trackPb
+- time
+- score
 
 ## AssetPb
 - AssetName
@@ -16,9 +18,8 @@ returns an output protocol-buffer (OutputPb)
 - PositionX
 - PositionY
 - PositionZ
-- VelocityX
-- VelocityY
-- VelocityZ
+- weapons
+- Lle : we have no idea what this is
 
 ## TrackPb
 - TrackID
@@ -45,3 +46,8 @@ returns an output protocol-buffer (OutputPb)
 - SystemName
 - Quantity
 - WeaponState
+
+## ShipActionPb
+- TargetID
+- AssetName
+- weapon
