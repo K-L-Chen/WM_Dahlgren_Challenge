@@ -1,6 +1,6 @@
 # Imports
-from Code.Planner.Example_Clients.MetaheuristicClient.ControlCenter import ControlCenter
-from Code.Planner.Example_Clients.MetaheuristicClient.WeaponAI import WeaponAI
+import ControlCenter#from ControlCenter Code.Planner.Example_Clients.MetaheuristicClient.ControlCenter import ControlCenter
+import WeaponAI#from WeaponAI Code.Planner.Example_Clients.MetaheuristicClient.WeaponAI import WeaponAI
 from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
     ScenarioInitializedNotificationPb  # Scenario start/end notifications
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
