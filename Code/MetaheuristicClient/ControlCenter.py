@@ -17,7 +17,9 @@ class ControlCenter:
         corresponds to a single target. Using this list, the ControlCenter decides on the best action to take for each
         target, and returns the selected actions as a list of (weapon_system, ship, target, ActionRule) tuples.
 
-        TODO: make sure the same weapon is not selected twice
+        TODO: make sure the same weapon is not selected twice — if the same weapon is optimal for two different
+              targets, the current selection algorithm will use that same weapon. This is not possible in-simulation,
+              and will cause problems.
 
         @param proposed_actions: A list of sets of proposed (weapon_system, ship, target, ActionRule) tuples.
         @return: A list of accepted (weapon_system, ship, target, ActionRule) tuples.
