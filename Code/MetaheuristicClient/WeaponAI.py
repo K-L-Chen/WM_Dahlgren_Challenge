@@ -5,7 +5,7 @@ Chainshot logic, and another in charge of Cannonball logic.
 
 This class is analogous to the B-cell from the immunized classifier paper.
 """
-from ActionRule import ActionRule, CONDITIONAL_NAMES
+from ActionRule import ActionRule, CONDITIONAL_NAMES, CONDITIONAL_ATTRIBUTE_COUNT
 from PlannerProto_pb2 import AssetPb, TrackPb, WeaponPb, StatePb
 import utils
 import pandas as pd
@@ -76,6 +76,35 @@ class WeaponAI:
 
         @return: The evaluated boolean truth value of the ActionRule, given the scenario
         """
+        calculated_conditional_list = [self.calc_distance_to_target(ship, target),
+                                       self.calc_target_speed(target),
+                                       self.calc_target_heading(ship, target),
+                                       self.calc_target_height(target),
+                                       self.calc_ship_compassion(target),
+                                       self.ammo_on_ship(weapon),
+                                       self.calc_nearby_ship_health(ship),
+                                       self.calc_my_ship_health(ship),
+                                       self.calc_number_of_targets()]
+        conditional_bits = action_rule.get_conditional_attributes()
+        conditional_cutoffs = action_rule.get_conditional_values()
+
+        return_val = True
+        for idx in CONDITIONAL_ATTRIBUTE_COUNT:
+            and_or_or = conditional_bits >> 1
+            le_or_ge = conditional_bits >> 1
+
+            current_truth = False
+            if le_or_ge:
+                current_truth = (calculated_conditional_list[idx] > conditional_cutoffs[idx])
+            else:
+                current_truth = (calculated_conditional_list[idx] <= conditional_cutoffs[idx])
+
+            if and_or_or:
+                return_val = return_val or current_truth
+            else:
+                return_val = return_val and current_truth
+
+        return return_val
 
     def save_rules(self, filename):
         # Joseph: Hmmm I have questions about this method being here
@@ -182,7 +211,17 @@ class WeaponAI:
                                  asset.health)
         return w_ship_health
 
-    def calc_number_of_enemy_missiles(self) -> int:
+    def calc_my_ship_health(self, ship: AssetPb) -> int:
+        """
+        Returns this ship's health
+
+        @param ship: The ship
+
+        @return: returns this ship's health
+        """
+        return ship.health
+
+    def calc_number_of_targets(self) -> int:
         """
         Calculates the number of enemy missiles in StatePb
 
