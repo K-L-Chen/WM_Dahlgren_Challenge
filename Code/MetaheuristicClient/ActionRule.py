@@ -12,6 +12,7 @@
     This is analogous to the classifier from the immunized classifier paper.
 """
 import numpy as np
+from numpy import ndarray
 
 """
 @cvar BOUNDS
@@ -82,8 +83,7 @@ class ActionRule:
 
         # if nothing is passed, randomly initialize lower_upper_bounds_vec and conditional_bits, based on BOUNDS
         else:
-            self.conditional_vals = np.random.randint(low=BOUNDS[:, 0], high=BOUNDS[:, 1] + 1,
-                                                      size=CONDITIONAL_ATTRIBUTE_COUNT)
+            self.conditional_vals = np.random.randint(low=BOUNDS[:, 0], high=BOUNDS[:, 1] + 1)
             # self.lower_upper_bounds_vec = np.rand(CONDITIONAL_ATTRIBUTE_COUNT)
             # for idx in range(len(self.lower_upper_bounds_vec)):
             #     # scales each lower_upper_boundsibute to the bounds specified
@@ -166,7 +166,7 @@ class ActionRule:
         """
         return self.conditional_bits
 
-    def update_conditional_values(self, update_vec: [float]):
+    def update_conditional_values(self, update_vec: ndarray[float]):
         """
         Updates the values encoded within the conditional.
         @param update_vec: New values to use in the conditional, as a numpy vector.
@@ -174,7 +174,7 @@ class ActionRule:
         """
         self.conditional_vals = update_vec
 
-    def get_conditional_values(self) -> [float]:
+    def get_conditional_values(self) -> ndarray[int]:
         """
         @return: The values encoded within the conditional.
         """
