@@ -16,23 +16,33 @@ import numpy as np
 """
 @cvar BOUNDS
 bounds for random initialization, 2D numpy array
-order of bound values:
-"distance_to_target", "target_speed", "target_heading", "target_height", "other_ship_priority", "num_weapons",
-             "nearby_ship_health", "my_ship_health", "num_targets"
+
+TODO: investigate target_height, since the cruising attitude
+is either 20 meters or 1000 meters according to slide #10 on
+the Planner Instruction Manual
 """
 BOUNDS = np.array([[0, 1000], # distance_to_target
                    [0, 1400], # target_speed
                    [0, 180], #  target_heading
                    [0, 2000], # target_height
-                   [0, 25], #   other_ship_priority
+                   [0, 8], #   other_ship_priority
                    [0, 100], #  num_weapons
                    [0, 100], #  nearby_ship_health
                    [0, 4], #    my_ship_health
+                   [0, 30], #   num_targets
                    ] 
                 )
 
 """ @cvar CONDITIONAL_ATTRIBUTE_COUNT — The number of conditional attributes that each ActionRule contains. """
-CONDITIONAL_ATTRIBUTE_COUNT = 8
+CONDITIONAL_ATTRIBUTE_COUNT = 9
+"""@cvar CONDITIONAL_NAMES - identifiers to the conditional attributes"""
+CONDITIONAL_NAMES = ["distance_to_target", "target_speed", "target_heading", "target_height", "other_ship_priority",
+             "num_weapons", "nearby_ship_health", "my_ship_health", "num_targets"]
+
+
+if len(CONDITIONAL_NAMES) != CONDITIONAL_ATTRIBUTE_COUNT:
+    raise RuntimeError("CONDITIONAL_ATTRIBUTE_COUNT must match with length of CONDITIONAL_NAMES")
+
 
 
 class ActionRule:
@@ -43,41 +53,48 @@ class ActionRule:
     accuracy = 0.0
     relative_accuracy = 0.0
 
-    def __init__(self, attr:np.ndarray = None, cond_bits:int = None):
+    def __init__(self, conditional_vals:np.ndarray = None, cond_bits:int = None):
         """
         Constructor for ActionRule
 
-        @param attr (): An optional parameter, if not None, are a 2D arr. of values used to initialize this ActionRule.
-        @param cond_bits: An optional parameter, if not None, is an integer encoding the conditionals detailed below.
+        An ActionRule is essentially a list of conditionals, or a policy for short
+        - These conditionals can combined by AND or OR
+            (e.g. if dist_to_target < 500 AND target_speed > 686 OR ... AND num_targets < 4)
+
+        @param (optional) conditional_vals: an arr. of values to compare against for the policy
+            - each val. is either a lower bound ("greater than", >) or an upper bound ("lesser than", <)
+
+        @param (optional) cond_bits: an integer encoding additional info. of the policy detailed below.
         """
 
-        # make vectors for attr name, vec
-        # think about making them into dataframes
-        self.attr_name_vec = np.array(
-            ["distance_to_target", "target_speed", "target_heading", "target_height", "ship_compassion",
-             "num_weapons", "nearby_ship_health", "my_ship_health", "num_targets"])
+        # self.conditional_vals_names = np.array(
+        #     ["distance_to_target", "target_speed", "target_heading", "target_height", "other_ship_priority",
+        #      "num_weapons", "nearby_ship_health", "my_ship_health", "num_targets"]
+        #      )
 
-
-        # manually specify attr_vec and conditional_bits
-        if attr is not None and cond_bits is not None:
-            self.attr_vec = attr
+        # manually specify conditional_vals and conditional_bits
+        if conditional_vals is not None and cond_bits is not None:
+            self.conditional_vals = conditional_vals
             self.conditional_bits = cond_bits
 
         # throw error if input is invalid
-        elif attr is None or cond_bits is None:
-            raise RuntimeError("Must specify both attr and cond_bits if manually instantiating!")
+        elif (conditional_vals is None and cond_bits is not None) or \
+             (conditional_vals is not None and cond_bits is None):
+            raise RuntimeError("Must specify both conditional values and cond_bits if manually instantiating!")
 
-        # if nothing is passed, randomly initialize attr_vec and conditional_bits, based on BOUNDS
+        # if nothing is passed, randomly initialize lower_upper_bounds_vec and conditional_bits, based on BOUNDS
         else:
-            self.attr_vec = np.random.uniform(BOUNDS[:, 0], BOUNDS[:, 1])
-            # self.attr_vec = np.rand(CONDITIONAL_ATTRIBUTE_COUNT)
-            # for idx in range(len(self.attr_vec)):
-            #     # scales each attribute to the bounds specified
-            #     self.attr_vec[idx] = self.attr_vec[idx] * \
+            self.conditional_vals = np.random.randint(BOUNDS[:, 0], BOUNDS[:, 1] + 1)
+            # self.lower_upper_bounds_vec = np.rand(CONDITIONAL_ATTRIBUTE_COUNT)
+            # for idx in range(len(self.lower_upper_bounds_vec)):
+            #     # scales each lower_upper_boundsibute to the bounds specified
+            #     self.lower_upper_bounds_vec[idx] = self.attr_vec[idx] * \
             #         (BOUNDS[idx][1] - BOUNDS[idx][0]) + BOUNDS[idx][0]
 
             """
-            Store all of our AND/OR, GE/LE decisions as 2 bit values in a long(?)
+            `conditional_bits` definition
+
+            Store all of our AND/OR, greater than/less than decisions as 2 bit values in a long(?)
             start on the right hand side, so:
             distance_to_target is at bits 1 and 0
             target_speed is at bits 3 and 2, etc...
@@ -114,6 +131,7 @@ class ActionRule:
         @return:
         """
         # TODO: Consider extra fitness parameters
+        pass
 
     def get_fitness(self):
         """
@@ -130,8 +148,15 @@ class ActionRule:
             a bitstring — use a 1 in the positions you want the bit to be flipped, and a 0 in the positions where you
             would not want a bit to be flipped.
 
-            Example: If the conditional bits are 0101011, and the input value is 1001000, the updated conditional bits
-                will be 1100011.
+        - Useful Python syntax: you can pass in update_value as the bitstring directly with 0b1010... 
+        for example, and Python will automatically convert that into its respective integer to 
+        perform the XOR (^) bitwise operation
+        - Python will not use leading 0s in its binary representation if it doesn't have to, which
+         means that the representation's length is not always 2 * CONDITIONAL_ATTRIBUTE_COUNT,
+        but this is not an issue as when we want to change any of these leadings 0s to 1s
+
+        Example: If the conditional bits are 0101011, and the input value is 1001000, the updated conditional bits
+            will be 1100011.
         @return: None
         """
         self.conditional_bits = self.conditional_bits ^ update_value
@@ -154,4 +179,4 @@ class ActionRule:
         """
         @return: The values encoded within the conditional.
         """
-        return self.attr_vec
+        return self.conditional_vals

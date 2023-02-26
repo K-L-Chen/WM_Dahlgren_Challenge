@@ -134,13 +134,12 @@ class AiManager:
             # or do a cutoff
             # use a global flag var? remember this code runs every step
             
-            if(self.swap):
+            if self.swap:
                 # TODO run harmony search
-                1
-
+                pass
             else:
                 # TODO run genetic algorithm
-                
+                pass
 
                 cur_step, prev_step = 0 , 0
                 step_size = 1.0
@@ -149,7 +148,7 @@ class AiManager:
                 # swap flag based on genetic algorithm rate of change
                 if(rate_of_change < 5):
                     #TODO set swap flag
-                    1
+                    pass
 
 
     # Helper methods for determining whether any weapons are left
