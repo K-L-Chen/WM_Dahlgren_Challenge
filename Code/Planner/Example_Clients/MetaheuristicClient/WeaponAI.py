@@ -5,7 +5,8 @@ Chainshot logic, and another in charge of Cannonball logic.
 
 This class is analogous to the B-cell from the immunized classifier paper.
 """
-
+import ActionRule
+import pandas as pd
 
 class WeaponAI:
     my_type = ""
@@ -20,7 +21,17 @@ class WeaponAI:
         @param weapon_type: The weapon type that this WeaponAI object is for (e.g. Chainshot or Cannonball), as a string.
         @param filename: Optional parameter for training with GA — the file where trained ActionRule are stored.
         """
-        my_type = weapon_type
+        # TODO implement pandas csv create and parse
+
+        self.my_type = weapon_type
+        self.df = None
+
+        if(filename):
+            self.df = pd.read_csv(filename)
+
+        else:
+            #self.my_actionrule = ActionRule()
+            self.action_set.update(ActionRule())
 
     def request(self, weapon, ship, target):
         """
@@ -37,6 +48,7 @@ class WeaponAI:
         @param target: The target (missile) that the weapon is currently considering.
         @return: set(( weapon_system, ship, target, ActionRule ))
         """
+
         print('requested')
 
     def save_rules(self, filename):
@@ -47,3 +59,6 @@ class WeaponAI:
         @param filename: The filename, as a string, where this function will save the ActionRules to.
         @return: None
         """
+
+        # TODO Figure out the formatting for the file output
+        self.df.to_csv(filename, sep='\n')
