@@ -18,7 +18,7 @@ chmod +x Planner_Runner.sh
 
 to see the GUI mentioned in slide 18 of the [planner instruction manual](../Instructions/2_Planner_Instruction_Manual.pdf)
 
-You will then configure your Python environment according to the first few lines in [`main.py`](./Code/Planner/PythonClient/main.py):
+You will then configure your Python environment according to the first few lines in [`main.py`](./Planner/PythonClient/main.py):
 
 ```
 python 3.10.9
