@@ -1,12 +1,14 @@
 # Imports
-import ControlCenter#from ControlCenter Code.Planner.Example_Clients.MetaheuristicClient.ControlCenter import ControlCenter
-import WeaponAI#from WeaponAI Code.Planner.Example_Clients.MetaheuristicClient.WeaponAI import WeaponAI
+import ControlCenter
+import WeaponAI
 from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
     ScenarioInitializedNotificationPb  # Scenario start/end notifications
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
 from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state information
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from publisher import Publisher
+from pyharmonysearch import harmony_search
+import pygad
 
 import random
 import utils
@@ -38,6 +40,9 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
+
+        # add swap var to let us swap from GA to HS
+        self.swap = 0
 
         # make a new weapon A.I. object for each weapon_type
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
@@ -112,7 +117,7 @@ class AiManager:
 
         # execute the best actions to get a reward
         # reward = execute(best_actions)
-        # TODO: execute the best actions, make it so this line is uncommented and implement the details
+        # TODO: execute the best actions, make it so line above is uncommented and implement the details
 
         if TRAINING:
             accuracy_sum = 0
@@ -125,6 +130,27 @@ class AiManager:
 
             # do Genetic Algorithm OR Harmony Search here!
             # TODO: Implement GA, HS, or some other update to use here.
+            # we can read rate of change between our steps to swap between algorithms
+            # or do a cutoff
+            # use a global flag var? remember this code runs every step
+            
+            if(self.swap):
+                # TODO run harmony search
+                1
+
+            else:
+                # TODO run genetic algorithm
+                
+
+                cur_step, prev_step = 0 , 0
+                step_size = 1.0
+                rate_of_change = (cur_step - prev_step) / step_size
+
+                # swap flag based on genetic algorithm rate of change
+                if(rate_of_change < 5):
+                    #TODO set swap flag
+                    1
+
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]):
