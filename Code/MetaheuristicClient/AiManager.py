@@ -52,6 +52,9 @@ class AiManager:
 
         self.control_center = ControlCenter()
 
+        # to keep track of all actions that were executed this round
+        self.actions_executed_this_round = set()
+
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
 
@@ -68,11 +71,13 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
+        self.actions_executed_this_round = set()  # empty the set of the weapons executed this round
         print("Scenario run: " + str(msg.sessionId))
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
+        self.training_update(msg.score)
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
     def createActions(self, msg: StatePb):
@@ -104,52 +109,73 @@ class AiManager:
         target_actions = list()
 
         for target in msg.Tracks:
-            current_target_actions = set()
-            for defense_ship in msg.assets:
-                for weapon in defense_ship.weapons:
-                    # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
-                    proposed_actions = self.weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
-                    target_actions.append(proposed_actions)
-            target_actions.append(current_target_actions)
+            if target.ThreatRelationship == "Hostile" and target not in self.blacklist:
+                current_target_actions = set()
+                for defense_ship in msg.assets:
+                    for weapon in defense_ship.weapons:
+                        # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
+                        proposed_actions = self.weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
+                        target_actions.append(proposed_actions)
+                target_actions.append(current_target_actions)
 
         # initialize and apply immune system dynamics to get the top Actions
-        best_actions = ControlCenter.decide(target_actions)
+        best_actions = self.control_center.decide(target_actions)
 
-        # execute the best actions to get a reward
-        # reward = execute(best_actions)
-        # TODO: execute the best actions, make it so line above is uncommented and implement the details
+        # execute the best actions
+        finalized_actions = []
+        for action_to_execute in best_actions:
+            # add track to blacklist so we don't consider it anymore
+            self.blacklist.add(action_to_execute[2])
 
-        if TRAINING:
-            accuracy_sum = 0
-            for action in best_actions:
-                # accuracy_sum += action.update_predicted_values(reward)
-                print("placeholder, uncomment the above line after finishing the above TODO")
+            # construct a singular ship_action
+            ship_action: ShipActionPb = ShipActionPb()
+            ship_action.TargetId = action_to_execute[2].TrackId
+            ship_action.AssetName = action_to_execute[1].AssetName
+            ship_action.weapon = action_to_execute[0].SystemName
 
-            for action in best_actions:
-                action.update_fitness(accuracy_sum)
+            finalized_actions.append(ship_action)
 
-            # do Genetic Algorithm OR Harmony Search here!
-            # TODO: Implement GA, HS, or some other update to use here.
-            # we can read rate of change between our steps to swap between algorithms
-            # or do a cutoff
-            # use a global flag var? remember this code runs every step
-            
-            if self.swap:
-                # TODO run harmony search
+        return finalized_actions
+
+    def training_update(self, reward: int):
+        """
+        Updates ActionRule fitness values and does training/updates on the ActionRules using either GA or HS
+        @param reward: the final score received after a scenario has concluded
+        @return: None
+        """
+
+        # update fitness values
+
+        # accuracy_sum = 0
+        for action in self.actions_executed_this_round:
+            # accuracy_sum += action.update_predicted_values(reward)
+            action.update_predicted_values(reward)
+            print("placeholder, uncomment the above line after finishing the above TODO")
+
+        # for action in best_actions:
+        #     action.update_fitness(accuracy_sum)
+
+        # do Genetic Algorithm OR Harmony Search here!
+        # TODO: Implement GA, HS, or some other update to use here.
+        # we can read rate of change between our steps to swap between algorithms
+        # or do a cutoff
+        # use a global flag var? remember this code runs every step
+
+        if self.swap:
+            # TODO run harmony search
+            pass
+        else:
+            # TODO run genetic algorithm
+            pass
+
+            cur_step, prev_step = 0, 0
+            step_size = 1.0
+            rate_of_change = (cur_step - prev_step) / step_size
+
+            # swap flag based on genetic algorithm rate of change
+            if rate_of_change < 5:
+                # TODO set swap flag
                 pass
-            else:
-                # TODO run genetic algorithm
-                pass
-
-                cur_step, prev_step = 0 , 0
-                step_size = 1.0
-                rate_of_change = (cur_step - prev_step) / step_size
-
-                # swap flag based on genetic algorithm rate of change
-                if(rate_of_change < 5):
-                    #TODO set swap flag
-                    pass
-
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]):

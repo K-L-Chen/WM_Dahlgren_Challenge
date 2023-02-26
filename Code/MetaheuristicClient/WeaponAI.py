@@ -12,7 +12,7 @@ import numpy as np
 
 
 class WeaponAI:
-    def __init__(self, weapon_type:str, filename:str = None, init_policy_population:int = None):
+    def __init__(self, weapon_type: str, filename: str = None, init_policy_population: int = None):
         """
         The constructor for this class initializes action_set, defaulting to randomly generating the ActionRule objects
         contained within, but if a file is specified, it will fetch the information from a file and initialize them
@@ -25,8 +25,8 @@ class WeaponAI:
         # TODO implement pandas csv create and parse
 
         self.type = weapon_type
-        self.action_set = None # set[ActionRule]
-        self.action_df = None # Pandas dataframe reprsenting action set
+        self.action_set = None  # set[ActionRule]
+        self.action_df = None  # Pandas dataframe representing action set
 
         if filename:
             self.action_df = pd.read_csv(filename)
@@ -35,9 +35,9 @@ class WeaponAI:
         else:
             self.action_set = set(ActionRule() for _ in range(init_policy_population))
             self.action_df = pd.DataFrame(
-                data = [np.append(a.conditional_vals, a.conditional_bits) for a in self.action_set],
-                 columns =  CONDITIONAL_NAMES + ['cond_bits']
-                 )
+                data=[np.append(a.conditional_vals, a.conditional_bits) for a in self.action_set],
+                columns=CONDITIONAL_NAMES + ['cond_bits']
+            )
 
     def request(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb):
         """
