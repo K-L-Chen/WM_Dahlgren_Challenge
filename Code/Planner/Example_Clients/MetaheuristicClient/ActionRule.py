@@ -13,6 +13,25 @@
 """
 import numpy as np
 
+"""
+@cvar BOUNDS
+bounds for random initialization, 2D numpy array
+order of bound values:
+"distance_to_target", "target_speed", "target_heading", "target_height", "nearby_ships", "nearby_weapons",
+             "nearby_ship_health", "my_ship_health"
+"""
+BOUNDS = np.array([[0, 1000],
+                   [0, 1400],
+                   [0, 180],
+                   [0, 2000],
+                   [0, 25],
+                   [0, 100],
+                   [0, 100],
+                   [0, 4]])
+
+""" @cvar CONDITIONAL_ATTRIBUTE_COUNT — The number of conditional attributes that each ActionRule contains. """
+CONDITIONAL_ATTRIBUTE_COUNT = 8
+
 
 class ActionRule:
     # fields for updating ActionRule fitness
@@ -36,11 +55,21 @@ class ActionRule:
             ["distance_to_target", "target_speed", "target_heading", "target_height", "nearby_ships", "nearby_weapons",
              "nearby_ship_health", "my_ship_health"])
 
-        if attr is not None:
+        # manually specify attr_vec and conditional_bits
+        if attr is not None and cond_bits is not None:
             self.attr_vec = attr
             self.conditional_bits = cond_bits
+
+        # throw error if input is invalid
+        elif attr is None or cond_bits is None:
+            raise RuntimeError("Must specify both attr and cond_bits if manually instantiating!")
+
+        # if nothing is passed, randomly initialize attr_vec and conditional_bits, based on BOUNDS
         else:
-            self.attr_vec = np.zeros(8)
+            self.attr_vec = np.rand(CONDITIONAL_ATTRIBUTE_COUNT)
+            for idx in range(len(self.attr_vec)):
+                # scales each attribute to the bounds specified
+                self.attr_vec[idx] = self.attr_vec[idx] * (BOUNDS[idx][1] - BOUNDS[idx][0]) + BOUNDS[idx][0]
 
             # store all of our AND/OR, GE/LE decisions as 2 bit values in a long(?)
             # start on the right hand side, so:
@@ -51,7 +80,7 @@ class ActionRule:
             # to change values, place all bits we want to flip into a number
             # then XOR that number with conditional_bits
             # e.g. we want to flip bit 3, then we XOR conditional_bits with 0x4
-            self.conditional_bits = 0
+            self.conditional_bits = np.random.randint(0, 2 ** (2 * CONDITIONAL_ATTRIBUTE_COUNT))
 
         # TODO maybe PCA it if we have time
         # TODO optimize if/else chains with lists, vectors, or other ways
@@ -77,6 +106,12 @@ class ActionRule:
         @return:
         """
         # TODO: Consider extra fitness parameters
+
+    def get_fitness(self):
+        """
+        @return: The current fitness value for this ActionRule
+        """
+        return self.predicted_value
 
     def update_conditional_attributes(self, update_value):
         """
