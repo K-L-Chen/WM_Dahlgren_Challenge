@@ -35,6 +35,7 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
+        self.highest_distance = 0
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
@@ -58,6 +59,7 @@ class AiManager:
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+        print(self.highest_distance)
 
     def createActions(self, msg: StatePb):
         """
@@ -141,6 +143,9 @@ class AiManager:
             s_dist = utils.distance(s_ass.PositionX, s_ass.PositionY, s_ass.PositionZ,
                                     most_danger_threat.PositionX, most_danger_threat.PositionY,
                                     most_danger_threat.PositionZ)
+
+            if s_dist > self.highest_distance:
+                self.highest_distance = s_dist
 
             # comparisons
             for asset in unassigned_assets:

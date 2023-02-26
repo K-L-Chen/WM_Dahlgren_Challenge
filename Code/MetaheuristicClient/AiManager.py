@@ -48,7 +48,7 @@ class AiManager:
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
         self.weapon_AIs = dict()
         for weapon_type in WEAPON_TYPES:
-            self.weapon_AIs[weapon_type] = WeaponAI(weapon_type)
+            self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type)
 
         self.control_center = ControlCenter()
 
@@ -105,6 +105,10 @@ class AiManager:
         """
         This is the decision-making component of the meta-heuristic algorithm detailed in /Pseudocode/Algorithm.md
         """
+        # let the WeaponAIs know what the current situation is
+        for wai in self.weapon_AIs:
+            wai.set_state_info(msg, self.blacklist)
+
         # create set of possible actions against target
         target_actions = list()
 
