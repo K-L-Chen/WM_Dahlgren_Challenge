@@ -9,6 +9,7 @@ Locate `Planner/JCORE/JCORE/Data/Base/CommonData/Sensors_Emitters_Base.json` if 
 If you are not running a Windows machine, instead of running `Planner_Runner.bat`, please run `Planner_Runner.sh` instead.
 
 Then run the following in your terminal:
+
 ```
 chmod +x ./Java/jdk-11.0.8/bin/java.exe
 chmod +x Planner_Runner.sh
@@ -24,15 +25,3 @@ python 3.10.9
 pip install protobuf==3.20.0
 pip install pyzmq==24.0.0
 ```
-
-You will also need the compiler for `protobuf`/Google Protocol Buffers. Follow the steps under ["How do I start?"](https://developers.google.com/protocol-buffers/). You may need to restart your Windows computer after adding the environment variable to the `bin` directory so that you can execute 
-
-```
-❯ protoc --version
-libprotoc 3.6.1
-```
-
-without error on your terminal. Your version may be different.
-
-
-

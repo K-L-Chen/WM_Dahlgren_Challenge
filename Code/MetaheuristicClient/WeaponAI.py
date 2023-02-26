@@ -8,10 +8,8 @@ This class is analogous to the B-cell from the immunized classifier paper.
 import ActionRule
 import pandas as pd
 
-class WeaponAI:
-    my_type = ""
-    action_set = set()
 
+class WeaponAI:
     def __init__(self, weapon_type, filename=None):
         """
         The constructor for this class initializes action_set, defaulting to randomly generating the ActionRule objects
@@ -23,15 +21,16 @@ class WeaponAI:
         """
         # TODO implement pandas csv create and parse
 
-        self.my_type = weapon_type
+        self.type = weapon_type
+        self.action_set = set()
         self.df = None
 
-        if(filename):
+        if filename:
             self.df = pd.read_csv(filename)
 
         else:
             #self.my_actionrule = ActionRule()
-            self.action_set.update(ActionRule())
+            self.action_set.add(ActionRule())
 
     def request(self, weapon, ship, target):
         """
