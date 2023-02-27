@@ -1,0 +1,320 @@
+Initializing AI client
+Constructing publisher
+Constructing subscriber
+Constructing AI Manager
+Registering subscribers
+receiveScenarioConcludedNotificationPb registered
+receiveScenarioInitializedNotificationPb registered
+receiveStatePb registered
+Waiting to recv.
+Received a message of type: ScenarioInitializedNotificationPb
+Scenario run: 1
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb
+Waiting to recv.
+Received a message of type: StatePb
+Publishing OutputPb

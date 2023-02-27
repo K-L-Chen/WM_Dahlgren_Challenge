@@ -32,6 +32,7 @@ to see the GUI mentioned in slide 18 of the [planner instruction manual](../Inst
 python 3.10.9
 pip install protobuf==3.20.0
 pip install pyzmq==24.0.0
+pip install numpy pandas
 ```
 
 Then run `python main.py` to get our A.I. up and running.
