@@ -47,7 +47,7 @@ class WeaponAI:
                 columns=CONDITIONAL_NAMES + ['cond_bits']
             )
 
-    def request(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb):
+    def request(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb) -> list[tuple[WeaponPb, AssetPb, ActionRule]]:
         """
         Generates a strategy for a specific weapon, ship and target.
 
@@ -61,21 +61,38 @@ class WeaponAI:
         @param ship: The ship that the weapon is on.
         @param target: The target (missile) that the weapon is currently considering.
 
-        @return: 
-        1. proposed_actions: list[ set[ tuple[weapon_system, ship, ActionRule] ] ]
-            Kevin: Aren't we returning a set of tuples here?
+        @return: proposed_actions - a list of potential weapon assingment to this target
         (hostile TrackId and in ShipActionPb)
         """
         # if target not in self.trackID_to_track:
         #     self.trackID_to_track[target.TrackID] = target
 
         proposed_actions = []
+
         for action_rule in self.action_set:
             if self.evaluate(weapon, ship, target, action_rule):
                 proposed_actions.append((weapon, ship, action_rule))
-        return proposed_actions
 
-    #
+        return proposed_actions
+    
+
+    def update_action_set(self, new_actions: set[ActionRule]):
+        """
+        Adds more action rules to consider through AI discovery
+        e.g. a genetic algorithm's children
+        
+        @param new_actions: a set of new action rules to add
+        """
+        assert type(new_actions) == set
+
+        self.action_set.update(new_actions)
+        new_data = pd.DataFrame(
+            data=[np.append(n.conditional_vals, n.conditional_bits) for n in new_actions],
+            columns=CONDITIONAL_NAMES + ['cond_bits']
+        )
+        self.action_df = pd.concat([self.action_df, new_data], ignore_index=True)
+
+
     # def get_trackID_to_track(self):
     #     """
     #     @return: trackID_to_track: dict[int]: TrackPb to map each TrackId to its corresponding TrackPb object
@@ -89,6 +106,7 @@ class WeaponAI:
     #     @return: None
     #     """
     #     self.trackID_to_track = {}
+
 
     def evaluate(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb, action_rule: ActionRule) -> bool:
         """
@@ -110,10 +128,12 @@ class WeaponAI:
                                        self.calc_nearby_ship_health(ship),
                                        self.calc_my_ship_health(ship),
                                        self.calc_number_of_targets()]
+
         conditional_bits = action_rule.get_conditional_attributes()
         conditional_cutoffs = action_rule.get_conditional_values()
 
-        return_val = True
+        return_val = None
+
         for idx in range(CONDITIONAL_ATTRIBUTE_COUNT):
             and_or_or = conditional_bits & 1
             conditional_bits = conditional_bits >> 1
@@ -121,17 +141,24 @@ class WeaponAI:
             conditional_bits = conditional_bits >> 1
 
             current_truth = False
+
             if le_or_ge:
                 current_truth = (calculated_conditional_list[idx] > conditional_cutoffs[idx])
             else:
                 current_truth = (calculated_conditional_list[idx] <= conditional_cutoffs[idx])
 
-            if and_or_or:
-                return_val = return_val or current_truth
-            else:
-                return_val = return_val and current_truth
+            # initialization; we ignore the first and_or_or
+            if return_val is None:
+                return_val = current_truth
+
+            else: 
+                if and_or_or:
+                    return_val = return_val or current_truth
+                else:
+                    return_val = return_val and current_truth
 
         return return_val
+
 
     def save_rules(self, filename):
         # Joseph: Hmmm I have questions about this method being here
@@ -148,6 +175,7 @@ class WeaponAI:
 
         # TODO Figure out the formatting for the file output
         self.action_df.to_csv(filename, sep='\n')
+
 
     def set_state_info(self, state_pb: StatePb, blacklist: set) -> None:
         """

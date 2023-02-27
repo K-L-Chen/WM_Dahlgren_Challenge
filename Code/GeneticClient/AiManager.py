@@ -20,7 +20,7 @@ import random
 import utils
 
 """
-This class contains the basic metaheuristic algorithm. Its has the required functionality 
+This class contains the basic genetic algorithm. Its has the required functionality 
 # to receive data from the Planner and send actions back.
 
 The word "receive" is protected in this class and should NOT be used in function names. 
@@ -81,13 +81,15 @@ class AiManager:
         self.actions_executed_this_round = set()  # empty the set of the weapons executed this round
         print("Scenario run: " + str(msg.sessionId))
 
+
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
         self.training_update(msg.score)
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
-    def createActions(self, msg: StatePb):
+
+    def createActions(self, msg: StatePb) -> OutputPb:
         """
         Oversees the A.I. response and sends it back to the planner
 
@@ -97,20 +99,29 @@ class AiManager:
         
         Returns
         -------
-        output_message: OutputPb with .actions: list[ShipAction] - list of A.I. actions from asset(s)
+        output_message: OutputPb with actions: list[ShipAction] - list of A.I. actions from asset(s)
         """
 
         output_message: OutputPb = OutputPb()
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.metaheuristic(msg))
+        output_message.actions.extend(self.engage_targets(msg))
 
         return output_message
 
-    def metaheuristic(self, msg: StatePb):
+
+    def engage_targets(self, msg: StatePb) -> list[ShipActionPb]:
         """
-        This is the decision-making component of the meta-heuristic algorithm detailed in /Pseudocode/Algorithm.md
+        This method assigns weapons to all targets by:
+        1. seeing which subset of potential weapon assignments apply to the situation at this timestep
+        2. filtering out redundancies by choosing the best weapon assignment per target, based on genetic fitness
+        3. sending an official assignment response back to the Planner
+
+        @param msg: the current timestep situation containing info. about enemy missiles, ship assets, current time,
+        and score
+
+        @return: finalized_actions: list[ShipActionPb]
         """
         # let the WeaponAIs know what the current situation is
         for wai in self.weapon_AIs:
@@ -125,31 +136,35 @@ class AiManager:
             if target.ThreatRelationship == "Hostile" and target.TrackId not in self.blacklist:
                 trackid_to_track[target.TrackId] = target
                 current_target_actions = []
+
                 for defense_ship in msg.assets:
                     for weapon in defense_ship.weapons:
-                        # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
+                        # get a set of proposed ( weapon, defense_ship, action_rule_that_applies ) tuples for the target
                         proposed_actions = self.weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
                         current_target_actions.extend(proposed_actions)
+
                 target_actions[target.TrackId] = current_target_actions
 
         # initialize and apply immune system dynamics to get the top Actions
-        best_actions = self.control_center.decide(target_actions, trackid_to_track)
+        self.control_center.decide_action_per_target(target_actions, trackid_to_track)
 
         # execute the best actions
         finalized_actions = []
-        for action_to_execute in best_actions:
-            # add track to blacklist so we don't consider it anymore
-            self.blacklist.add(action_to_execute[2].TrackId)
+        for target_id, target_action in target_actions.items():
+            if target_action is not None:
+                # add track to blacklist so we don't consider it anymore
+                self.blacklist.add(target_id)
 
-            # construct a singular ship_action
-            ship_action: ShipActionPb = ShipActionPb()
-            ship_action.TargetId = action_to_execute[2].TrackId
-            ship_action.AssetName = action_to_execute[1].AssetName
-            ship_action.weapon = action_to_execute[0].SystemName
+                # construct a singular ship_action
+                ship_action: ShipActionPb = ShipActionPb()
+                ship_action.TargetId = target_id 
+                ship_action.AssetName = target_action[1].AssetName
+                ship_action.weapon = target_action[0].SystemName
 
-            finalized_actions.append(ship_action)
+                finalized_actions.append(ship_action)
 
         return finalized_actions
+
 
     def training_update(self, reward: int):
         """
@@ -192,12 +207,12 @@ class AiManager:
                 pass
 
     # Helper methods for determining whether any weapons are left
-    def weapons_are_available(self, assets: list[AssetPb]):
+    def weapons_are_available(self, assets: list[AssetPb]) -> bool:
         for asset in assets:
             if self.weapons_in_asset(asset): return True
         return False
 
-    def weapons_in_asset(self, asset: AssetPb):
+    def weapons_in_asset(self, asset: AssetPb) -> bool:
         for weapon in asset.weapons:
             if weapon.Quantity > 0: return True
         return False

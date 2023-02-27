@@ -120,6 +120,7 @@ class ActionRule:
         # right now, we are only updating predicted_value
         self.predicted_value = self.predicted_value + \
                                step * (reward - self.predicted_value)
+                               
 
     def update_fitness(self, accuracy_sum: float):
         """
