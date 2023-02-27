@@ -7,8 +7,14 @@ from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
 from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state information
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from publisher import Publisher
+
+"""
+These libraries are not being used, since we pretty much have already implemented
+everything so far througto take advantage of the functionality of these two libraries.
+
 from pyharmonysearch import harmony_search
-# import pygad
+import pygad
+"""
 
 import random
 import utils
