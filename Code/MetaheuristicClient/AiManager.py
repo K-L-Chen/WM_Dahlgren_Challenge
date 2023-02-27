@@ -1,6 +1,6 @@
 # Imports
-import ControlCenter
-import WeaponAI
+from ControlCenter import ControlCenter
+from WeaponAI import WeaponAI
 from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
     ScenarioInitializedNotificationPb  # Scenario start/end notifications
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
@@ -8,7 +8,7 @@ from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state infor
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from publisher import Publisher
 from pyharmonysearch import harmony_search
-import pygad
+# import pygad
 
 import random
 import utils
@@ -28,8 +28,9 @@ Definitions/clarifications:
 Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
 """
 
-WEAPON_TYPES = ["Cannon", "Chainshot"]
+WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 TRAINING = True
+POPULATION_SIZE = 100
 
 
 class AiManager:
@@ -48,7 +49,7 @@ class AiManager:
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
         self.weapon_AIs = dict()
         for weapon_type in WEAPON_TYPES:
-            self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type)
+            self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type, init_policy_population=POPULATION_SIZE)
 
         self.control_center = ControlCenter()
 
@@ -107,29 +108,32 @@ class AiManager:
         """
         # let the WeaponAIs know what the current situation is
         for wai in self.weapon_AIs:
-            wai.set_state_info(msg, self.blacklist)
+            self.weapon_AIs[wai].set_state_info(msg, self.blacklist)
 
         # create set of possible actions against target
-        target_actions = list()
+        target_actions = dict()
+
+        trackid_to_track = dict()
 
         for target in msg.Tracks:
-            if target.ThreatRelationship == "Hostile" and target not in self.blacklist:
-                current_target_actions = set()
+            if target.ThreatRelationship == "Hostile" and target.TrackId not in self.blacklist:
+                trackid_to_track[target.TrackId] = target
+                current_target_actions = []
                 for defense_ship in msg.assets:
                     for weapon in defense_ship.weapons:
                         # get a set of proposed ( weapon, defense_ship, target ) tuples for the target
                         proposed_actions = self.weapon_AIs[weapon.SystemName].request(weapon, defense_ship, target)
-                        target_actions.append(proposed_actions)
-                target_actions.append(current_target_actions)
+                        current_target_actions.extend(proposed_actions)
+                target_actions[target.TrackId] = current_target_actions
 
         # initialize and apply immune system dynamics to get the top Actions
-        best_actions = self.control_center.decide(target_actions)
+        best_actions = self.control_center.decide(target_actions, trackid_to_track)
 
         # execute the best actions
         finalized_actions = []
         for action_to_execute in best_actions:
             # add track to blacklist so we don't consider it anymore
-            self.blacklist.add(action_to_execute[2])
+            self.blacklist.add(action_to_execute[2].TrackId)
 
             # construct a singular ship_action
             ship_action: ShipActionPb = ShipActionPb()

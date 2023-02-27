@@ -31,12 +31,16 @@ class WeaponAI:
 
         self.current_statePb = None
         self.blacklist = None
+        # self.trackID_to_track = {}
 
         if filename:
             self.action_df = pd.read_csv(filename)
             self.action_set = set(ActionRule(bounds) for bounds in self.action_df.to_numpy())
 
         else:
+            if init_policy_population is None:
+                raise RuntimeError("Must specify `init_policy_population` parameter for WeaponAI constructor")
+
             self.action_set = set(ActionRule() for _ in range(init_policy_population))
             self.action_df = pd.DataFrame(
                 data=[np.append(a.conditional_vals, a.conditional_bits) for a in self.action_set],
@@ -59,11 +63,32 @@ class WeaponAI:
 
         @return: 
         1. proposed_actions: list[ set[ tuple[weapon_system, ship, ActionRule] ] ]
-        2. idx_to_targetId: list[int] to map each idx. of proposed_actions to its TargetId 
+            Kevin: Aren't we returning a set of tuples here?
         (hostile TrackId and in ShipActionPb)
         """
+        # if target not in self.trackID_to_track:
+        #     self.trackID_to_track[target.TrackID] = target
 
-        print('requested')
+        proposed_actions = []
+        for action_rule in self.action_set:
+            if self.evaluate(weapon, ship, target, action_rule):
+                proposed_actions.append((weapon, ship, action_rule))
+        return proposed_actions
+
+    #
+    # def get_trackID_to_track(self):
+    #     """
+    #     @return: trackID_to_track: dict[int]: TrackPb to map each TrackId to its corresponding TrackPb object
+    #     """
+    #     return self.trackID_to_track
+    #
+    # def clear_trackID_to_track(self):
+    #     """
+    #     Resets the class variable trackID_to_track
+    #
+    #     @return: None
+    #     """
+    #     self.trackID_to_track = {}
 
     def evaluate(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb, action_rule: ActionRule) -> bool:
         """
@@ -89,9 +114,11 @@ class WeaponAI:
         conditional_cutoffs = action_rule.get_conditional_values()
 
         return_val = True
-        for idx in CONDITIONAL_ATTRIBUTE_COUNT:
-            and_or_or = conditional_bits >> 1
-            le_or_ge = conditional_bits >> 1
+        for idx in range(CONDITIONAL_ATTRIBUTE_COUNT):
+            and_or_or = conditional_bits & 1
+            conditional_bits = conditional_bits >> 1
+            le_or_ge = conditional_bits & 1
+            conditional_bits = conditional_bits >> 1
 
             current_truth = False
             if le_or_ge:
@@ -193,7 +220,7 @@ class WeaponAI:
         @param target: The target
         @return: The height of the target above the water.
         """
-        return target.positionZ
+        return target.PositionZ
 
     def calc_nearby_ship_health(self, ship: AssetPb) -> float:
         """
@@ -229,7 +256,7 @@ class WeaponAI:
         """
         count = 0
         for track in self.current_statePb.Tracks:
-            if track.ThreatRelationship == "Hostile" and track not in self.blacklist:
+            if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
                 count += 1
         return count
 
