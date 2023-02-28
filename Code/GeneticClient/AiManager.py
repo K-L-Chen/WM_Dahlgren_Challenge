@@ -8,9 +8,9 @@ from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state infor
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from publisher import Publisher
 
-import pygad as pga
-from pyharmonysearch import harmony_search
-from ObjectiveFunctionInterface import ObjectiveFunction as ofihs
+# import pygad as pga
+# from pyharmonysearch import harmony_search
+#from ObjectiveFunctionInterface import ObjectiveFunction as ofihs
 
 """
 These libraries are not being used, since we pretty much have already implemented
