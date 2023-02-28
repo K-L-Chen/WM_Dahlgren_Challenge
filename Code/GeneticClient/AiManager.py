@@ -8,6 +8,10 @@ from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state infor
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from publisher import Publisher
 
+import pygad as pga
+from pyharmonysearch import harmony_search
+from ObjectiveFunctionInterface import ObjectiveFunction as ofihs
+
 """
 These libraries are not being used, since we pretty much have already implemented
 everything so far througto take advantage of the functionality of these two libraries.
@@ -35,6 +39,7 @@ Threat: an incoming enemy missile starting from a random locations. There are no
 """
 
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
+#switch to false once we start running for the competition
 TRAINING = True
 POPULATION_SIZE = 100
 
@@ -49,7 +54,7 @@ class AiManager:
         self.blacklist = set()
 
         # add swap var to let us swap from GA to HS
-        self.swap = 0
+        self.swap = False
 
         # make a new weapon A.I. object for each weapon_type
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
@@ -61,6 +66,78 @@ class AiManager:
 
         # to keep track of all actions that were executed this round
         self.actions_executed_this_round = set()
+
+        #algorithm vars
+        '''
+        KYLE: I'm going to be honest here, I think we just reinvented the wheel
+              I'm also starting to think pygad loops once we start it...
+              might have to write our own version of the algorithm and drop pygad
+              This is legitimately painful
+
+        pygad constructor vars we care about:
+            - num_generations : number of generations
+            - num_parents_mating : number of solutions to be selected as parents
+            - fitness_func : function that acces 2 parameters and return fitness value
+            - fitness_batch_size (optional): calculates fitness function in batches
+            - initial_population: defaults to None (is a list)
+            - gene_type: data type of genes, defaults to float
+            - init_range_low: lower bound of genes, defaults to -4
+            - init_range_high: upper bound of genes, defaults to 4
+            - parent_selection_type: how we select parents
+                Choices:
+                    sss - steady-state selection (default)
+                    rws - roulette wheel selection
+                    sus - stochastic universal selection
+                    rank
+                    random
+                    tournament (what?)
+            - keep_parents: keep parents in population.
+                0 : do not keep any parents in next population
+                i > 0 : keep i parents
+                -1 : keep current number of parents (default)
+            - keep_elitism: number of solutions we keep for next generation
+                0 : no effect
+                1 : keep only best solution (default)
+                K > 1 : keep best K solutions
+            - crossover_type: type of crossover operation
+                single_point
+                two_points
+                scattered
+            - crossover_probability: probability for applying crossover operation to a parent
+                value must be between 0.0 - 1.0 inclusive
+            - mutation_type: type of mutation operation for creating children
+                random (default)
+                swap
+                inversion
+                scramble
+                adaptive
+            - mutation_percent_genes: percent of genes to mutate
+                must be between 0 (exclusive) & 100 (inclusive)
+                default is 10%
+            - mutation_num_genes: raw number of genes to mutate
+                default is nothing
+            - on_start: accepts function to be called once GA starts (1 param)
+            - on_fitness, on_parents, on_crossover, on_mutation: weird little functions called after respective functions
+                take 2 params, read documentation for specifics
+            - on_generation: accepts function to be called after each generation (1 param)
+                if function returns 'stop', GA stops and doesn't complete other generations
+            - on_stop: accepts function to be called before function stops, naturally or not (2 params)
+                first param: instance of GA
+                second param: list of fitness values of last population solutions
+            - save_best_solutions: boolean to save best solutions to attribute best_solutions
+                default False
+            - save_solutions: boolean to save solutions to attribute solutions
+                default False WHY ARE THERE SO MANY OF THESE VARIABLES????
+            - allow_duplicate_genes: boolean to allow duplicate gene values
+                default True (we probably want false)
+            - parallel_processing: accepts process/thread variable and number of processes/threads
+                default None
+        '''
+        #this is actually awful
+        self.ga = pga(num_generations=1000, num_parents_mating=2, fitness_func=self.weapon_AIs['Cannon_System'].get_fitness_pga, \
+                initial_population=list(0 for i in range(0, POPULATION_SIZE)), keep_elitism=1, crossover_type='single_point', \
+                crossover_probability=1.0, mutation_type='adaptive', save_best_solutions=True, save_solutions=True, allow_duplicate_genes=False)
+        self.hs_objfunc = ofihs()
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
@@ -78,9 +155,7 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
-        # empty the set of the weapons executed this round
-        self.actions_executed_this_round = set()          
-
+        self.actions_executed_this_round = set()  # empty the set of the weapons executed this round
         print("Scenario run: " + str(msg.sessionId))
 
 
@@ -154,9 +229,6 @@ class AiManager:
         finalized_actions = []
         for target_id, target_action in target_actions.items():
             if target_action is not None:
-                # add to the action rules executed this round
-                self.actions_executed_this_round.add(target_action[2])
-
                 # add track to blacklist so we don't consider it anymore
                 self.blacklist.add(target_id)
 
@@ -181,9 +253,9 @@ class AiManager:
         # update fitness values
 
         # accuracy_sum = 0
-        for action_rule in self.actions_executed_this_round:
+        for action in self.actions_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
-            action_rule.update_predicted_values(reward, step = 1e-5)
+            action.update_predicted_values(reward)
             print("placeholder, uncomment the above line after finishing the above TODO")
 
         # for action in best_actions:
@@ -209,7 +281,7 @@ class AiManager:
             # swap flag based on genetic algorithm rate of change
             if rate_of_change < 5:
                 # TODO set swap flag
-                pass
+                self.swap = True
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:

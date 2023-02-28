@@ -342,3 +342,15 @@ class WeaponAI:
         @return: the amount of ammunition remaining for this weapon type on this ship
         """
         return weapon.Quantity
+
+def get_fitness_pga(self, solution, index = 0):
+        '''
+        This is for the pygad constructor to shut up and work
+            Eventually to be made into a proper function, but it's 12 AM right now
+        @param solution: represents the solution
+        @param index: solution index of solution (list?)
+        @return: fitness value of solution
+        '''
+        # TODO implement this properly?
+        # PLACEHOLDER grab fitness value of latest action set
+        return self.action_set[-1].get_fitness()
