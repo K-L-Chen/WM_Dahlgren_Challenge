@@ -31,7 +31,6 @@ class WeaponAI:
 
         self.current_statePb = None
         self.blacklist = None
-        # self.trackID_to_track = {}
 
         if filename:
             self.action_df = pd.read_csv(filename)
@@ -91,21 +90,6 @@ class WeaponAI:
             columns=CONDITIONAL_NAMES + ['cond_bits']
         )
         self.action_df = pd.concat([self.action_df, new_data], ignore_index=True)
-
-
-    # def get_trackID_to_track(self):
-    #     """
-    #     @return: trackID_to_track: dict[int]: TrackPb to map each TrackId to its corresponding TrackPb object
-    #     """
-    #     return self.trackID_to_track
-    #
-    # def clear_trackID_to_track(self):
-    #     """
-    #     Resets the class variable trackID_to_track
-    #
-    #     @return: None
-    #     """
-    #     self.trackID_to_track = {}
 
 
     def evaluate(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb, action_rule: ActionRule) -> bool:
@@ -189,19 +173,19 @@ class WeaponAI:
         self.current_statePb = state_pb
         self.blacklist = blacklist
     
-    def calc_distance(self, a, b):
-        """
-        Helper method to calculate distance between two objects with (x, y, z) positions
-        @param a: an object with .PositionX, .PositionY, and .PositionZ fields
-        @param b: same as a
+    # def calc_distance(self, a, b):
+    #     """
+    #     Helper method to calculate distance between two objects with (x, y, z) positions
+    #     @param a: an object with .PositionX, .PositionY, and .PositionZ fields
+    #     @param b: same as a
         
-        @return: the distance between a and b
-        """
+    #     @return: the distance between a and b
+    #     """
 
-        a_pos = np.array([a.PositionX, a.PositionY, a.PositionZ])
-        b_pos = np.array([b.PositionX, b.PositionY, b.PositionZ])
+    #     a_pos = np.array([a.PositionX, a.PositionY, a.PositionZ])
+    #     b_pos = np.array([b.PositionX, b.PositionY, b.PositionZ])
         
-        return np.linalg.norm(b_pos - a_pos)
+    #     return np.linalg.norm(b_pos - a_pos)
 
 
     def calc_distance_to_target(self, ship: AssetPb, target: TrackPb) -> float:
@@ -211,12 +195,12 @@ class WeaponAI:
         @param target: The target
         @return: the distance from a ship to a target
         """
-        return self.calc_distance(ship, target)
-        # ship_pos = np.array([ship.PositionX, ship.PositionY, ship.PositionZ])
-        # target_pos = np.array([target.PositionX, target.PositionY, target.PositionZ])
+        # return self.calc_distance(ship, target)
+        ship_pos = (ship.PositionX, ship.PositionY, ship.PositionZ)
+        target_pos = (target.PositionX, target.PositionY, target.PositionZ)
         
         # return np.linalg.norm(target_pos - ship_pos)
-        # return utils.distance(*ship_pos, *target_pos)
+        return utils.distance(*ship_pos, *target_pos)
 
     def calc_target_speed(self, target: TrackPb) -> float:
         """
@@ -224,8 +208,8 @@ class WeaponAI:
         @param target: The target
         @return: Squared speed of the target
         """
-        return np.linalg.norm([target.VelocityX, target.VelocityY, target.VelocityZ])
-        # return utils.magnitude_sq(target.VelocityX, target.VelocityY, target.VelocityZ)
+        # return np.linalg.norm([target.VelocityX, target.VelocityY, target.VelocityZ])
+        return utils.magnitude_sq(target.VelocityX, target.VelocityY, target.VelocityZ)
 
     def calc_target_deviation(self, ship: AssetPb, target: TrackPb) -> float:
         """
@@ -245,22 +229,25 @@ class WeaponAI:
         currently directing facing each other. This would be 180 degrees (or 2pi radians) with just the angle itself.
         Relative to the ship in this case, the target has 0 degree deviance away from the ship.
         """
-        ship_pos = np.array([ship.PositionX, ship.PositionY, ship.PositionZ])
-        target_pos = np.array([target.PositionX, target.PositionY, target.PositionZ])
-        pos_diff = target_pos - ship_pos 
+        ship_pos = (ship.PositionX, ship.PositionY, ship.PositionZ)
+        target_pos = (target.PositionX, target.PositionY, target.PositionZ)
+        pos_diff = tuple(target_pos[i] - ship_pos[i] for i in range(3))
 
-        target_velocity = np.array([target.VelocityX, target.VelocityY, target.VelocityZ])
+        target_velocity = (target.VelocityX, target.VelocityY, target.VelocityZ)
+
 
         return np.pi - np.arccos(
             np.round(
-            np.dot(pos_diff, target_velocity) / (np.linalg.norm(pos_diff) * np.linalg.norm(target_velocity)), 
+            utils.dot(*pos_diff, *target_velocity) / 
+            (utils.magnitude_sq(*pos_diff) * utils.magnitude_sq(*target_velocity)) ** 0.5, 
                      2)
             )
 
     def calc_threat_danger(self, target: TrackPb) -> float:
         """
         Given the target, and the current state, computes the overall danger of a threat
-        based on summed nearness to all of the ships, weighted by the values of the ships
+        based on summed nearness to all of the ships, weighted by the values of the ships.
+        The more near, the more dangerous,
 
         Threat danger = {sum over all ships} (max distance - distance to ship) (4 if HVU 1 if NU)
 
@@ -291,19 +278,22 @@ class WeaponAI:
     def calc_nearby_ship_health(self, ship: AssetPb) -> float:
         """
         Calculates a sum of the health values of nearby ships to the weapon, weighted by distance.
+        The nearer the other ships are, the more this quantity goes up.
 
         @param ship: The ship
 
         @return: sum of the health values of nearby ships, weighted by distance.
         """
-        # ship_pos = (ship.PositionX, ship.PositionY, ship.PositionZ)
-        # asset_pos = (asset.PositionX, asset.PositionY, asset.PositionZ)
+        ship_pos = (ship.PositionX, ship.PositionY, ship.PositionZ)
 
         w_ship_health = 0
+
         for asset in self.current_statePb.assets:
+            asset_pos = (asset.PositionX, asset.PositionY, asset.PositionZ)
             w_ship_health += utils.DISTANCE_SCALE * \
-                    (utils.MAX_DISTANCE - self.calc_distance(ship, asset)) * \
+                    (utils.MAX_DISTANCE - utils.distance(*ship_pos, *asset_pos)) * \
                         (asset.health)
+
         return w_ship_health
 
     def calc_my_ship_health(self, ship: AssetPb) -> int:
