@@ -3,7 +3,8 @@ from pyharmonysearch import ObjectiveFunctionInterface as OFI
 class ObjectiveFunction(OFI):
     """
     This defines the objective function HS optimizes.
-    This MUST be present for 
+    This MUST be present for harmony search to work!
+    This exists to shorten the AiManager Class
     """
 
     def __init__(self):
