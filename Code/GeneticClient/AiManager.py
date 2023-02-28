@@ -74,20 +74,26 @@ class AiManager:
               might have to write our own version of the algorithm and drop pygad
               This is legitimately painful
 
-        JOSEPH: in response to Kyle, I think we may have reinvented a little bit,
-        but since what we have so far is mostly groundwork for the representation of our genes
-        and how to go about deploying them for decision-making, it may not be re-inventing the
-        wheel as much as we might think. If we started off with PyGAD, we probably would still need
-        have needed to do the equivalent amount of goodwork. But if you disagree, I'm open to listening.
+        Joseph: In response to Kyle, I would say even if we tried using PyGAD from the get-go, it would have been very hard
+        to use it because, as the first step, we cannot really define an explicit fitness function we can evaluate in one-go
+        for every single member of our population, which is an action rule. When we're running our simulations,
+        all we have for feedback is the final score, and only a subset of our population can actually be updated
+        with that score, since not every single action rule in our population will likely get executed.
+
+        Also, the overall goal is not static, like in supervised learning where y = 44 in the PyGAD example. The maximum final
+        score we can obtain in a given Planner simulation scenario will vary. 
 
         Personally, I was trusting Kevin when he said that he was having problems with using PyGAD, which is
-        why I've been hammering out the original plan of implementing the genetic algorithm from scratch, but I 
-        suppose fortunately you, Kyle, stepped in at the right movement before I went along and did that.
+        why I've been hammering out the original plan of implementing the genetic algorithm from scratch.
 
         pygad constructor vars we care about:
             - num_generations : number of generations
             - num_parents_mating : number of solutions to be selected as parents
-            - fitness_func : function that acces 2 parameters and return fitness value
+            - fitness_func : function that acceses 2 parameters and return fitness value
+
+            ^ I don't get what `solution_idx` is used for though
+            ^ We can't really compute a fitness function directly until after running at least a simulation
+
             - fitness_batch_size (optional): calculates fitness function in batches
             - initial_population: defaults to None (is a list)
             - gene_type: data type of genes, defaults to float
@@ -146,7 +152,7 @@ class AiManager:
             - parallel_processing: accepts process/thread variable and number of processes/threads
                 default None
         '''
-        #this is actually awful
+        # this is actually awful
         self.ga = pga(num_generations=1000, num_parents_mating=2, fitness_func=self.weapon_AIs['Cannon_System'].get_fitness_pga, \
                 initial_population=list(0 for i in range(0, POPULATION_SIZE)), keep_elitism=1, crossover_type='single_point', \
                 crossover_probability=1.0, mutation_type='adaptive', save_best_solutions=True, save_solutions=True, allow_duplicate_genes=False)
@@ -242,7 +248,7 @@ class AiManager:
         finalized_actions = []
         for target_id, target_action in target_actions.items():
             if target_action is not None:
-                # I'm not sure why this was deleted earlier
+                # add action rules executed this round to update their fitness
                 self.actions_executed_this_round.add(target_action[2])
 
                 # add track to blacklist so we don't consider it anymore
@@ -269,10 +275,10 @@ class AiManager:
         # update fitness values
 
         # accuracy_sum = 0
-        for action in self.actions_executed_this_round:
+        for action_rule_executed in self.actions_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
             # I'm not sure why `step` was deleted earlier
-            action.update_predicted_values(reward, step = 1e-5)
+            action_rule_executed.update_predicted_values(reward, step = 1e-5)
             print("placeholder, uncomment the above line after finishing the above TODO")
 
         # for action in best_actions:
