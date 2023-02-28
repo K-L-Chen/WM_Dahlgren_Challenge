@@ -134,6 +134,11 @@ class WeaponAI:
 
         return_val = None
 
+        #grab AND/OR, LE/GE bits for each element in our calculated conditional list
+        #starting at the rightmost side of the integer
+        #EVEN indexed bits are AND/OR -> 0/1
+        #ODD indexed bits are LE/GE -> 0/1
+        #KYLE : maybe we might want a separate grabber method for individual bit pairs?
         for idx in range(CONDITIONAL_ATTRIBUTE_COUNT):
             and_or_or = conditional_bits & 1
             conditional_bits = conditional_bits >> 1

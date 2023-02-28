@@ -97,8 +97,8 @@ class ActionRule:
             start on the right hand side, so:
             distance_to_target is at bits 1 and 0
             target_speed is at bits 3 and 2, etc...
-            odd num bits are AND/OR -> 0/1
-            even num bits are LE/GE -> 0/1
+            EVEN indexed bits are AND/OR -> 0/1
+            ODD indexed bits are LE/GE -> 0/1
             to change values, place all bits we want to flip into a number
             then XOR that number with conditional_bits
             e.g. we want to flip bit 3, then we XOR conditional_bits with 0x4
