@@ -121,7 +121,7 @@ class ActionRule:
         # self.predicted_value += step * (reward - self.predicted_value)
         self.predicted_value += step * reward
                                
-
+    #depreciated
     def update_fitness(self, accuracy_sum: float):
         """
         Given the accuracy_sum, the sum of accuracy values for all other ActionRules that were executed at the
