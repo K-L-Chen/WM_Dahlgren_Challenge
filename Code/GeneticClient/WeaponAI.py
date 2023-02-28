@@ -118,6 +118,11 @@ class WeaponAI:
 
         return_val = None
 
+        #grab AND/OR, LE/GE bits for each element in our calculated conditional list
+        #starting at the rightmost side of the integer
+        #EVEN indexed bits are AND/OR -> 0/1
+        #ODD indexed bits are LE/GE -> 0/1
+        #KYLE : maybe we might want a separate grabber method for individual bit pairs?
         for idx in range(CONDITIONAL_ATTRIBUTE_COUNT):
             and_or_or = conditional_bits & 1
             conditional_bits = conditional_bits >> 1
@@ -327,3 +332,15 @@ class WeaponAI:
         @return: the amount of ammunition remaining for this weapon type on this ship
         """
         return weapon.Quantity
+
+def get_fitness_pga(self, solution, index = 0):
+        '''
+        This is for the pygad constructor to shut up and work
+            Eventually to be made into a proper function, but it's 12 AM right now
+        @param solution: represents the solution
+        @param index: solution index of solution (list?)
+        @return: fitness value of solution
+        '''
+        # TODO implement this properly?
+        # PLACEHOLDER grab fitness value of latest action set
+        return self.action_set[-1].get_fitness()
