@@ -121,15 +121,15 @@ class WeaponAI:
         """
         calculated_conditional_list = [self.calc_distance_to_target(ship, target),
                                        self.calc_target_speed(target),
-                                       self.calc_target_heading(ship, target),
+                                       self.calc_target_deviation(ship, target),
                                        self.calc_target_height(target),
-                                       self.calc_ship_compassion(target),
+                                       self.calc_threat_danger(target),
                                        self.ammo_on_ship(weapon),
                                        self.calc_nearby_ship_health(ship),
                                        self.calc_my_ship_health(ship),
                                        self.calc_number_of_targets()]
 
-        conditional_bits = action_rule.get_conditional_attributes()
+        conditional_bits = action_rule.get_cond_bitstr()
         conditional_cutoffs = action_rule.get_conditional_values()
 
         return_val = None
@@ -188,6 +188,21 @@ class WeaponAI:
         """
         self.current_statePb = state_pb
         self.blacklist = blacklist
+    
+    def calc_distance(self, a, b):
+        """
+        Helper method to calculate distance between two objects with (x, y, z) positions
+        @param a: an object with .PositionX, .PositionY, and .PositionZ fields
+        @param b: same as a
+        
+        @return: the distance between a and b
+        """
+
+        a_pos = np.array([a.PositionX, a.PositionY, a.PositionZ])
+        b_pos = np.array([b.PositionX, b.PositionY, b.PositionZ])
+        
+        return np.linalg.norm(b_pos - a_pos)
+
 
     def calc_distance_to_target(self, ship: AssetPb, target: TrackPb) -> float:
         """
@@ -196,8 +211,12 @@ class WeaponAI:
         @param target: The target
         @return: the distance from a ship to a target
         """
-        return utils.distance(ship.PositionX, ship.PositionY, ship.PositionZ, target.PositionX, target.PositionY,
-                              target.PositionZ)
+        return self.calc_distance(ship, target)
+        # ship_pos = np.array([ship.PositionX, ship.PositionY, ship.PositionZ])
+        # target_pos = np.array([target.PositionX, target.PositionY, target.PositionZ])
+        
+        # return np.linalg.norm(target_pos - ship_pos)
+        # return utils.distance(*ship_pos, *target_pos)
 
     def calc_target_speed(self, target: TrackPb) -> float:
         """
@@ -205,41 +224,60 @@ class WeaponAI:
         @param target: The target
         @return: Squared speed of the target
         """
-        return utils.magnitude(target.VelocityX, target.VelocityY, target.VelocityZ)
+        return np.linalg.norm([target.VelocityX, target.VelocityY, target.VelocityZ])
+        # return utils.magnitude_sq(target.VelocityX, target.VelocityY, target.VelocityZ)
 
-    def calc_target_heading(self, ship: AssetPb, target: TrackPb) -> float:
+    def calc_target_deviation(self, ship: AssetPb, target: TrackPb) -> float:
         """
-        Given the ship and the target, returns the difference between the target's heading and the ship's heading,
-        in radians.
+        The idea is to have some measurement that quantifies how closely a target
+        is approaching a ship. The insight is that we can use the supplementary angle
+        between the target's velocity and the distance vector from the ship to the target.
+
+        i.e. We want to observe how much a target's trajectory deviates from the ship. A large 
+        deviation indicates that the target is probably approaching another target, while a smaller
+        indicates that the target is approaching towards the ship.
 
         @param ship: The ship
         @param target: The target
 
-        @return: The difference between the target's heading and the ship's heading, in radians.
+        @return: The supplementary angle between the target's heading and the ship's heading, in radians.
+        - Why supplementary? Because we want it so that this returns 0 when the ship and missile are
+        currently directing facing each other. This would be 180 degrees (or 2pi radians) with just the angle itself.
+        Relative to the ship in this case, the target has 0 degree deviance away from the ship.
         """
-        return np.arccos(utils.dot(ship.PositionX, ship.PositionY, ship.PositionZ, target.PositionX, target.PositionY,
-                                   target.PositionZ) / (utils.magnitude(target.VelocityX, target.VelocityY,
-                                                                        target.VelocityZ) * utils.magnitude(
-            ship.PositionX - target.PositionX, ship.PositionY - target.PositionY, ship.PositionZ - target
-            .PositionZ)))
+        ship_pos = np.array([ship.PositionX, ship.PositionY, ship.PositionZ])
+        target_pos = np.array([target.PositionX, target.PositionY, target.PositionZ])
+        pos_diff = target_pos - ship_pos 
 
-    def calc_ship_compassion(self, target: TrackPb) -> float:
+        target_velocity = np.array([target.VelocityX, target.VelocityY, target.VelocityZ])
+
+        return np.pi - np.arccos(
+            np.round(
+            np.dot(pos_diff, target_velocity) / (np.linalg.norm(pos_diff) * np.linalg.norm(target_velocity)), 
+                     2)
+            )
+
+    def calc_threat_danger(self, target: TrackPb) -> float:
         """
-        Given the target, and the current state, computes the ship compassion for the target
+        Given the target, and the current state, computes the overall danger of a threat
+        based on summed nearness to all of the ships, weighted by the values of the ships
 
-        Ship compassion = {sum over all ships} (max distance - distance to ship) (4 if HVU 1 if NU)
+        Threat danger = {sum over all ships} (max distance - distance to ship) (4 if HVU 1 if NU)
 
         @param ship: The ship
         @param target: The target
         @return: The ship compassion for this current weapon
         """
-        ship_compassion = 0
+        # target_pos = (target.PositionX, target.PositionY, target.PositionZ)
+        # asset_pos = (asset.PositionX, asset.PositionY, asset.PositionZ)
+
+        threat_danger = 0
         for asset in self.current_statePb.assets:
-            ship_compassion += utils.DISTANCE_SCALE * (
-                    utils.MAX_DISTANCE - utils.distance(target.PositionX, target.PositionY, target.PositionZ,
-                                                        asset.PositionX, asset.PositionY, asset.PositionZ)) * (
-                                   4 if asset.isHVU else 1)
-        return ship_compassion
+            threat_danger += utils.DISTANCE_SCALE * \
+                    (utils.MAX_DISTANCE - self.calc_distance_to_target(asset, target)) * \
+                    (4 if asset.isHVU else 1)
+
+        return threat_danger
 
     def calc_target_height(self, target: TrackPb) -> float:
         """
@@ -258,12 +296,14 @@ class WeaponAI:
 
         @return: sum of the health values of nearby ships, weighted by distance.
         """
+        # ship_pos = (ship.PositionX, ship.PositionY, ship.PositionZ)
+        # asset_pos = (asset.PositionX, asset.PositionY, asset.PositionZ)
+
         w_ship_health = 0
         for asset in self.current_statePb.assets:
-            w_ship_health += utils.DISTANCE_SCALE * (
-                    utils.MAX_DISTANCE - utils.distance(ship.PositionX, ship.PositionY, ship.PositionZ,
-                                                        asset.PositionX, asset.PositionY, asset.PositionZ)) * (
-                                 asset.health)
+            w_ship_health += utils.DISTANCE_SCALE * \
+                    (utils.MAX_DISTANCE - self.calc_distance(ship, asset)) * \
+                        (asset.health)
         return w_ship_health
 
     def calc_my_ship_health(self, ship: AssetPb) -> int:
@@ -278,9 +318,9 @@ class WeaponAI:
 
     def calc_number_of_targets(self) -> int:
         """
-        Calculates the number of enemy missiles in StatePb
+        Calculates the number of unassigned enemy missiles in StatePb
 
-        @return: the number of enemy missiles in StatePb
+        @return: the number of unassigned enemy missiles in StatePb
         """
         count = 0
         for track in self.current_statePb.Tracks:

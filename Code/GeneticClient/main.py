@@ -4,7 +4,6 @@ pip install protobuf==3.20.0
 pip install pyzmq==24.0.0
 Developed on python 3.10.9
 """
-
 # Imports
 from publisher import Publisher
 from subscriber import Subscriber

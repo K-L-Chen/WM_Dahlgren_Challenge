@@ -37,9 +37,9 @@ class ControlCenter:
 
             # find best action for this target
             for action in proposed_actions[track_id]:
-                # if best_action is None:
-                #     best_action = action
-                if action[2].get_fitness() > action[2].get_fitness():
+                if best_action is None:
+                    best_action = action
+                elif action[2].get_fitness() > best_action[2].get_fitness():
                     best_action = action
 
             # don't forget that it's possible that no proposed action might exist

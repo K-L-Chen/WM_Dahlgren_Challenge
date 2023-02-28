@@ -45,14 +45,14 @@ if len(CONDITIONAL_NAMES) != CONDITIONAL_ATTRIBUTE_COUNT:
 
 
 class ActionRule:
-    # fields for updating ActionRule fitness
-    predicted_value = 0.0
-    predicted_val_error = 0.0
-    fitness = 0.0
-    accuracy = 0.0
-    relative_accuracy = 0.0
-
     def __init__(self, conditional_vals: np.ndarray = None, cond_bits: int = None):
+        # fields for updating ActionRule fitness
+        self.predicted_value = 0.0
+        self.predicted_val_error = 0.0
+        self.fitness = 0.0
+        self.accuracy = 0.0
+        self.relative_accuracy = 0.0
+
         """
         Constructor for ActionRule
 
@@ -118,8 +118,8 @@ class ActionRule:
         """
 
         # right now, we are only updating predicted_value
-        self.predicted_value = self.predicted_value + \
-                               step * (reward - self.predicted_value)
+        # self.predicted_value += step * (reward - self.predicted_value)
+        self.predicted_value += step * reward
                                
 
     def update_fitness(self, accuracy_sum: float):
@@ -161,7 +161,7 @@ class ActionRule:
         """
         self.conditional_bits = self.conditional_bits ^ update_value
 
-    def get_conditional_attributes(self):
+    def get_cond_bitstr(self):
         """
         @return: The conditional attributes bitstring
         """

@@ -78,7 +78,9 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
-        self.actions_executed_this_round = set()  # empty the set of the weapons executed this round
+        # empty the set of the weapons executed this round
+        self.actions_executed_this_round = set()          
+
         print("Scenario run: " + str(msg.sessionId))
 
 
@@ -152,6 +154,9 @@ class AiManager:
         finalized_actions = []
         for target_id, target_action in target_actions.items():
             if target_action is not None:
+                # add to the action rules executed this round
+                self.actions_executed_this_round.add(target_action[2])
+
                 # add track to blacklist so we don't consider it anymore
                 self.blacklist.add(target_id)
 
@@ -176,9 +181,9 @@ class AiManager:
         # update fitness values
 
         # accuracy_sum = 0
-        for action in self.actions_executed_this_round:
+        for action_rule in self.actions_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
-            action.update_predicted_values(reward)
+            action_rule.update_predicted_values(reward, step = 1e-5)
             print("placeholder, uncomment the above line after finishing the above TODO")
 
         # for action in best_actions:
