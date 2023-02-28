@@ -49,7 +49,7 @@ class AiManager:
         self.blacklist = set()
 
         # add swap var to let us swap from GA to HS
-        self.swap = 0
+        self.swap = False
 
         # make a new weapon A.I. object for each weapon_type
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
@@ -200,6 +200,25 @@ class AiManager:
             pass
         else:
             # TODO run genetic algorithm
+            """
+            for each WeaponAI object in self.weaponAIs:
+                - Sample the top k (k is even) policies
+                    by normalizing the set of fitness/prediction values -> prob. distribution
+                - Randomly assign pairings for the k policies
+
+                - For each pair:
+                    -  Perform crossover + mutation in multiple different ways --> new action rules
+                        - crossover methods: averaging or taking subsets of attributes from both parents
+                        - mutation method: perturbation, small to big
+                    - Add the resulting action rule to this WeaponAI object
+            
+            Every 10 or so runs ...
+            - (DBSCAN) Cluster similar action rules together to avoid redundancies
+            - Now just replace the population with the means of these clusters
+            - ^^ but be careful: keep track if a small perturbation results in a huge different in fitness value
+                ^ unlikely to be the case, but just an edge case I wanted to throw out there
+                ^ instead of replacing with the mean, we could replace with the action rule with the highest fitness
+            """
             pass
 
             cur_step, prev_step = 0, 0
@@ -208,8 +227,7 @@ class AiManager:
 
             # swap flag based on genetic algorithm rate of change
             if rate_of_change < 5:
-                # TODO set swap flag
-                pass
+                self.swap = True
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
