@@ -153,10 +153,10 @@ class AiManager:
                 default None
         '''
         # this is actually awful
-        self.ga = pga(num_generations=1000, num_parents_mating=2, fitness_func=self.weapon_AIs['Cannon_System'].get_fitness_pga, \
+        '''self.ga = pga(num_generations=1000, num_parents_mating=2, fitness_func=self.weapon_AIs['Cannon_System'].get_fitness_pga, \
                 initial_population=list(0 for i in range(0, POPULATION_SIZE)), keep_elitism=1, crossover_type='single_point', \
                 crossover_probability=1.0, mutation_type='adaptive', save_best_solutions=True, save_solutions=True, allow_duplicate_genes=False)
-        self.hs_objfunc = ofihs()
+        self.hs_objfunc = ofihs()'''
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
