@@ -19,6 +19,8 @@ everything so far to take advantage of the functionality of these two libraries.
 from pyharmonysearch import harmony_search
 import pygad
 """
+import numpy as np
+from numpy import ndarray
 
 import random
 import utils
