@@ -339,7 +339,7 @@ class AiManager:
         lenb = conditional_bits_2b.bit_length()
         bitlen = 0
         
-        for idx in range(9):
+        for _ in range(NUM_FEATURES):
             tempA = conditional_bits_1b % 2
             tempB = conditional_bits_2b % 2
             new_cond_bits = new_cond_bits + (((tempA) & (tempB)) | ((tempA) ^ (tempB)))
