@@ -30,3 +30,6 @@ venv
 navy_wta_env
 navy_wta.tar*
 
+# VS Code
+.vscode
+
