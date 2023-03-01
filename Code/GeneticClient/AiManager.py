@@ -389,13 +389,32 @@ class AiManager:
         @return:
         '''
         #Combine the two conditional_vals arrays
-        new_conditional_vals = (ActionRule1.get_conditional_values() + ActionRule2.get_conditional_values())//2
+        new_conditional_vals = (ActionRule1.get_conditional_values() + ActionRule2.get_conditional_values()) // 2
         
         #Combine the two bitsets
         new_bitset = 0
         
         conditional_bits_1 = ActionRule1.get_cond_bitstr()
+        conditional_bits_1b = ActionRule1.get_cond_bitstr()
         conditional_bits_2 = ActionRule2.get_cond_bitstr()
+        conditional_bits_2b = ActionRule2.get_cond_bitstr()
+
+        new_cond_bits = 0
+        
+        lena = conditional_bits_1b.bit_length()
+        lenb = conditional_bits_2b.bit_length()
+        bitlen = 0
+        
+        for idx in range(9):
+            tempA = conditional_bits_1b % 2
+            tempB = conditional_bits_2b % 2
+            new_cond_bits = new_cond_bits + (((tempA) & (tempB)) | ((tempA) ^ (tempB)))
+            new_cond_bits = new_cond_bits * 2
+
+            conditional_bits_1b = conditional_bits_1b // 2
+            conditional_bits_2b = conditional_bits_2b // 2
+            print(format(new_cond_bits,'b'))
+        print("*********")
         #grab AND/OR, LE/GE bits for each element in our calculated conditional list
         #starting at the rightmost side of the integer
         #EVEN indexed bits are AND/OR -> 0/1
@@ -422,7 +441,7 @@ class AiManager:
             new_bitset * 2 #<< 1
             new_bitset = new_bitset + and_or_or_2
 
-            print(new_bitset)
+            print(format(new_bitset,'b'))
             
         final_action_rule = ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
         #Mutation
