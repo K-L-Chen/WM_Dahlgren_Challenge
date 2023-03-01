@@ -343,16 +343,16 @@ class AiManager:
         lenb = conditional_bits_2b.bit_length()
         bitlen = 0
         
-        for _ in range(NUM_FEATURES):
-            tempA = conditional_bits_1b % 2
-            tempB = conditional_bits_2b % 2
-            new_cond_bits = new_cond_bits + (((tempA) & (tempB)) | ((tempA) ^ (tempB)))
-            new_cond_bits = new_cond_bits * 2
+        # for _ in range(NUM_FEATURES):
+        #     tempA = conditional_bits_1b % 2
+        #     tempB = conditional_bits_2b % 2
+        #     new_cond_bits = new_cond_bits + (((tempA) & (tempB)) | ((tempA) ^ (tempB)))
+        #     new_cond_bits = new_cond_bits * 2
 
-            conditional_bits_1b = conditional_bits_1b // 2
-            conditional_bits_2b = conditional_bits_2b // 2
-            print(format(new_cond_bits,'b'))
-        print("*********")
+        #     conditional_bits_1b = conditional_bits_1b // 2
+        #     conditional_bits_2b = conditional_bits_2b // 2
+        #     print(format(new_cond_bits,'b'))
+        # print("*********")
         # grab AND/OR, LE/GE bits for each element in our calculated conditional list
         # starting at the rightmost side of the integer
         # EVEN indexed bits are AND/OR -> 0/1
@@ -360,7 +360,7 @@ class AiManager:
         # KYLE : maybe we might want a separate grabber method for individual bit pairs?
 
         """Crossover by obtainig LE/GE bit from 1st parent and the AND/OR bit from 2nd parent"""
-        for _ in range(NUM_FEATURES):
+        for i in range(NUM_FEATURES):
             # and_or_or_1 = conditional_bits_1 % 2
             conditional_bits_1 = conditional_bits_1 // 2 # >> 1
             le_or_ge_1 = conditional_bits_1 % 2 # & 1
@@ -371,17 +371,17 @@ class AiManager:
             # le_or_ge_2 = conditional_bits_2 % 2 # & 1
             conditional_bits_2 = conditional_bits_2 // 2 # >> 1
 
-            
+            print("Less than/greater than bit from parent 1: " + str(le_or_ge_1))
+            print("And/Or Bit from parent 2: " + str(and_or_or_2))
             # add less than/greater than bit from first parent
-            new_bitset *= 2 # << 1
-            new_bitset += le_or_ge_1   
-            
-
+            #new_bitset *= 2 # << 1
+            new_bitset += le_or_ge_1 * 2 ** (i * 2 + 1)
+                
             #add and/or bit from second parent
-            new_bitset *= 2 # << 1
-            new_bitset += and_or_or_2
+            #new_bitset *= 2 # << 1
+            new_bitset += and_or_or_2 * 2 ** (i * 2)
 
-            print(format(new_bitset,'b'))
+            print(format(new_bitset,'0b'))
             
         """Mutation"""
         for i in range(NUM_FEATURES):
