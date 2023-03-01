@@ -8,6 +8,7 @@ from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state infor
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
 from ActionRuleClass import ActionRule
 import ActionRuleClass
+from scipy.special import softmax
 from publisher import Publisher
 
 # import pygad as pga
@@ -257,10 +258,13 @@ class AiManager:
                 # Calculating the prob. distribution of the fitness values to help with random
                 # sampling of the parents
                 fitness_values = np.array([rule.get_fitness() for rule in weaponType_actRules])
-                fitness_values = np.where(fitness_values == 0, 1 / len(fitness_values), fitness_values)
-                fitness_values = np.where(fitness_values < 0, -fitness_values, fitness_values)
-                fitness_based_probs = fitness_values / np.sum(fitness_values)
+                # fitness_values = np.where(fitness_values == 0, 1 / len(fitness_values), fitness_values)
+                # fitness_values = np.where(fitness_values < 0, -fitness_values, fitness_values)
+                # fitness_based_probs = fitness_values / np.sum(fitness_values)
 
+                #use np.softmax to convert this np array of fitness values to a probability distribution
+
+                fitness_based_probs = softmax(fitness_values)
                 # rounds to the nearest even number
                 num_parents = int(PARENT_PERCENTAGE*len(weaponType_actRules) + 0.5) & ~1
 
