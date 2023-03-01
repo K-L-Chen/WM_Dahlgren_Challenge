@@ -25,3 +25,8 @@ venv
 /.idea/WM_Dahlgren_Challenge.iml
 /.idea/modules.xml
 .idea/modules.xml
+
+# local environment
+navy_wta_env
+navy_wta.tar*
+
