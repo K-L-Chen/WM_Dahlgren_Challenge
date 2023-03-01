@@ -289,6 +289,7 @@ class AiManager:
         # we can read rate of change between our steps to swap between algorithms
         # or do a cutoff
         # use a global flag var? remember this code runs every step
+        prev_step = 0
 
         if self.swap:
             # TODO run harmony search
@@ -314,7 +315,20 @@ class AiManager:
                 ^ unlikely to be the case, but just an edge case I wanted to throw out there
                 ^ instead of replacing with the mean, we could replace with the action rule with the highest fitness
             """
-            pass
+            count = 0
+
+            for wai in self.weapon_AIs:
+                self.control_center
+                if(count % 10 == 0):
+                    #TODO implement DBSCAN
+                    pass
+
+                proposed_actions = set(wai.request(WeaponPb, AssetPb, TrackPb))
+                correct_actions = set()
+                for action in wai.action_set:
+                    ga_actions = wai.evaluate(WeaponPb, AssetPb, TrackPb, action)
+                    if ga_actions:
+                        correct_actions.update(action)
 
             cur_step, prev_step = 0, 0
             step_size = 1.0
