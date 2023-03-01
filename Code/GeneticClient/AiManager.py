@@ -6,7 +6,8 @@ from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
 from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state information
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
-from ActionRule import ActionRule
+from ActionRuleClass import ActionRule
+import ActionRuleClass
 from publisher import Publisher
 
 # import pygad as pga
@@ -46,8 +47,11 @@ WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 TRAINING = True
 POPULATION_SIZE = 100
 NUM_ELITES = 5
-MUTATION_RATES_VALUES = 0.3 #How likely are individual cond_value entries to mutate
-MUTATION_RATES_BITS = 0.05 #How likely are individual cond_bits to mutate
+MUTATION_RATE_VALUES = 0.3 #How likely are individual cond_value entries to mutate
+MUTATION_RATE_BITS = 0.05 #How likely are individual cond_bits to mutate
+NUM_FEATURES = ActionRuleClass.CONDITIONAL_ATTRIBUTE_COUNT
+PARENT_PERCENTAGE = 0.2 # how much of the population we want to sample from for parents to breed
+
 
 class AiManager:
 
@@ -57,6 +61,7 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
+        self.simulation_count = 0
 
         # add swap var to let us swap from GA to HS
         self.swap = False
@@ -70,98 +75,9 @@ class AiManager:
         self.control_center = ControlCenter()
 
         # to keep track of all actions that were executed this round
-        self.actions_executed_this_round = set()
+        # to sample without replacement, we need this to be a list instead of a set
+        self.actRules_executed_this_round = []
 
-        #algorithm vars
-        '''
-        KYLE: I'm going to be honest here, I think we just reinvented the wheel
-              I'm also starting to think pygad loops once we start it...
-              might have to write our own version of the algorithm and drop pygad
-              This is legitimately painful
-
-        Joseph: In response to Kyle, I would say even if we tried using PyGAD from the get-go, it would have been very hard
-        to use it because, as the first step, we cannot really define an explicit fitness function we can evaluate in one-go
-        for every single member of our population, which is an action rule. When we're running our simulations,
-        all we have for feedback is the final score, and only a subset of our population can actually be updated
-        with that score, since not every single action rule in our population will likely get executed.
-
-        Also, the overall goal is not static, like in supervised learning where y = 44 in the PyGAD example. The maximum final
-        score we can obtain in a given Planner simulation scenario will vary. 
-
-        Personally, I was trusting Kevin when he said that he was having problems with using PyGAD, which is
-        why I've been hammering out the original plan of implementing the genetic algorithm from scratch.
-
-        pygad constructor vars we care about:
-            - num_generations : number of generations
-            - num_parents_mating : number of solutions to be selected as parents
-            - fitness_func : function that acceses 2 parameters and return fitness value
-
-            ^ I don't get what `solution_idx` is used for though
-            ^ We can't really compute a fitness function directly until after running at least a simulation
-
-            - fitness_batch_size (optional): calculates fitness function in batches
-            - initial_population: defaults to None (is a list)
-            - gene_type: data type of genes, defaults to float
-            - init_range_low: lower bound of genes, defaults to -4
-            - init_range_high: upper bound of genes, defaults to 4
-            - parent_selection_type: how we select parents
-                Choices:
-                    sss - steady-state selection (default)
-                    rws - roulette wheel selection
-                    sus - stochastic universal selection
-                    rank
-                    random
-                    tournament (what?)
-            - keep_parents: keep parents in population.
-                0 : do not keep any parents in next population
-                i > 0 : keep i parents
-                -1 : keep current number of parents (default)
-            - keep_elitism: number of solutions we keep for next generation
-                0 : no effect
-                1 : keep only best solution (default)
-                K > 1 : keep best K solutions
-
-            - crossover_type: type of crossover operation
-                single_point
-                two_points
-                scattered
-                (we probably want to utilize all three of these types at once)
-
-            - crossover_probability: probability for applying crossover operation to a parent
-                value must be between 0.0 - 1.0 inclusive
-            - mutation_type: type of mutation operation for creating children
-                random (default)
-                swap
-                inversion
-                scramble
-                adaptive
-            - mutation_percent_genes: percent of genes to mutate
-                must be between 0 (exclusive) & 100 (inclusive)
-                default is 10%
-            - mutation_num_genes: raw number of genes to mutate
-                default is nothing
-            - on_start: accepts function to be called once GA starts (1 param)
-            - on_fitness, on_parents, on_crossover, on_mutation: weird little functions called after respective functions
-                take 2 params, read documentation for specifics
-            - on_generation: accepts function to be called after each generation (1 param)
-                if function returns 'stop', GA stops and doesn't complete other generations
-            - on_stop: accepts function to be called before function stops, naturally or not (2 params)
-                first param: instance of GA
-                second param: list of fitness values of last population solutions
-            - save_best_solutions: boolean to save best solutions to attribute best_solutions
-                default False
-            - save_solutions: boolean to save solutions to attribute solutions
-                default False WHY ARE THERE SO MANY OF THESE VARIABLES????
-            - allow_duplicate_genes: boolean to allow duplicate gene values
-                default True (we probably want false)
-            - parallel_processing: accepts process/thread variable and number of processes/threads
-                default None
-        '''
-        # this is actually awful
-        '''self.ga = pga(num_generations=1000, num_parents_mating=2, fitness_func=self.weapon_AIs['Cannon_System'].get_fitness_pga, \
-                initial_population=list(0 for i in range(0, POPULATION_SIZE)), keep_elitism=1, crossover_type='single_point', \
-                crossover_probability=1.0, mutation_type='adaptive', save_best_solutions=True, save_solutions=True, allow_duplicate_genes=False)
-        self.hs_objfunc = ofihs()'''
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
@@ -179,7 +95,8 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
-        self.actions_executed_this_round = set()  # empty the set of the weapons executed this round
+        self.actRules_executed_this_round = []  # empty the list of the weapons executed this round
+        self.simulation_count += 1
         print("Scenario run: " + str(msg.sessionId))
 
 
@@ -254,7 +171,7 @@ class AiManager:
         for target_id, target_action in target_actions.items():
             if target_action is not None:
                 # add action rules executed this round to update their fitness
-                self.actions_executed_this_round.add(target_action[2])
+                self.actRules_executed_this_round.append(target_action[2])
 
                 # add track to blacklist so we don't consider it anymore
                 self.blacklist.add(target_id)
@@ -282,7 +199,7 @@ class AiManager:
         # update fitness values
         
         # accuracy_sum = 0
-        for action_rule_executed in self.actions_executed_this_round:
+        for action_rule_executed in self.actRules_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
             # I'm not sure why `step` was deleted earlier
             action_rule_executed.update_predicted_values(reward, step)
@@ -324,48 +241,63 @@ class AiManager:
                 ^ unlikely to be the case, but just an edge case I wanted to throw out there
                 ^ instead of replacing with the mean, we could replace with the action rule with the highest fitness
             """
-            #count to create the dictionary
-            count = 0
-            for i in range(100):
-                for wai in self.weapon_AIs:
-                    #self.control_center
-                    if(count % 10 == 0):
-                        #TODO implement DBSCAN
-                        pass
+            # for _ in range(100):
+            for weapon_name in self.weapon_AIs:
+                #self.control_center
+                if(self.simulation_count % 10 == 0):
+                    #TODO implement DBSCAN
+                    pass
+                
+                weaponType_actRules = self.weapon_AIs[weapon_name].action_set
 
-                    #sets to shove ActionRule, targets into
-                    correct_actions = set()
-                    current_targets = set()
+                # Beginning the breeding process
+                # parent_actRules = set()
+                children_actRules = []
+
+                # Calculating the prob. distribution of the fitness values to help with random
+                # sampling of the parents
+                fitness_values = np.array([rule.get_fitness() for rule in weaponType_actRules])
+                fitness_based_probs = fitness_values / np.sum(fitness_values)
+
+                # rounds to the nearest even number
+                num_parents = int(PARENT_PERCENTAGE*len(weaponType_actRules) + 0.5) & ~1
+
+                sample_action_rules = np.random.choice(weaponType_actRules, 
+                                                        size = num_parents, 
+                                                        replace = False,
+                                                        p = fitness_based_probs)
+                
+
+
+
+                # for action in self.weapon_AIs[weapon_name].action_set:
+                #     ga_actions = self.weapon_AIs[weapon_name].evaluate(WeaponPb, AssetPb, TrackPb, action)
+                #     if ga_actions:
+                #         action.update_predicted_values(reward + 1, step)
+                #         correct_actions.update(action)
+
+                # length = len(correct_actions)
+                # for _ in range(NUM_ELITES):
+                #     a = (int)(random.random() * length)
+                #     b = (int)(random.random() * length * length + 1) % length
+                #     children_actRules.add(self.breed(correct_actions[a], correct_actions[b]))
+
+                for i in range(len(sample_action_rules) - 1):
+                    children_actRules.append(self.breed(sample_action_rules[i], sample_action_rules[i + 1]))
                     
-                    bred_avgs = set()
+                self.weapon_AIs[weapon_name].update_action_set(children_actRules)
 
-                    #evaluate actions in the action set and grab the best ones
-                    for action in wai.action_set:
-                        ga_actions = wai.evaluate(WeaponPb, AssetPb, TrackPb, action)
-                        if ga_actions:
-                            action.update_predicted_values(reward + 1, step)
-                            correct_actions.update(action)
+                # proposed_actions_dict = {}
+                # proposed_actions_dict[count] = set(self.weapon_AIs[weapon_name].request(WeaponPb, AssetPb, TrackPb))
 
-                    length = len(correct_actions)
-                    for i in range(NUM_ELITES):
-                        a = (int)(random() * length)
-                        b = (int)(random() * length * length + 1) % length
-                        bred_avgs.update(self.breed_avg(correct_actions[a], correct_actions[b]))
-                        
-                    wai.update_action_set(bred_avgs)
 
-                    proposed_actions_dict = {}
-                    proposed_actions_dict[count] = set(wai.request(WeaponPb, AssetPb, TrackPb))
+            # cur_step, prev_step = 0, 0
+            # rate_of_change = (cur_step - prev_step) / step
 
-                    count = count + 1
-
-                cur_step, prev_step = 0, 0
-                rate_of_change = (cur_step - prev_step) / step
-
-                # swap flag based on genetic algorithm rate of change
-                if rate_of_change < 5:
-                    self.swap = True
-                    break
+            # # swap flag based on genetic algorithm rate of change
+            # if rate_of_change < 5:
+            #     self.swap = True
+            #     break
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
@@ -379,25 +311,25 @@ class AiManager:
         return False
     
     #Takes two ActionRules and produces a third ActionRule
-    def breed_avg(self, ActionRule1 : ActionRule, ActionRule2 : ActionRule):
+    def breed(self, action_rule_1 : ActionRule, action_rule_2 : ActionRule):
         '''
         gets the breeded average value for our correct solutions
 
-        @param ActionRule1: good rule 1
-        @param ActionRule2: good rule 2
+        @param action_rule_1: good rule 1
+        @param action_rule_2: good rule 2
 
         @return:
         '''
         #Combine the two conditional_vals arrays
-        new_conditional_vals = (ActionRule1.get_conditional_values() + ActionRule2.get_conditional_values()) // 2
+        new_conditional_vals = (action_rule_1.get_conditional_values() + action_rule_2.get_conditional_values())//2
         
         #Combine the two bitsets
         new_bitset = 0
         
-        conditional_bits_1 = ActionRule1.get_cond_bitstr()
-        conditional_bits_1b = ActionRule1.get_cond_bitstr()
-        conditional_bits_2 = ActionRule2.get_cond_bitstr()
-        conditional_bits_2b = ActionRule2.get_cond_bitstr()
+        conditional_bits_1 = action_rule_1.get_cond_bitstr()
+        conditional_bits_1b = action_rule_1.get_cond_bitstr()
+        conditional_bits_2 = action_rule_2.get_cond_bitstr()
+        conditional_bits_2b = action_rule_2.get_cond_bitstr()
 
         new_cond_bits = 0
         
@@ -415,48 +347,48 @@ class AiManager:
             conditional_bits_2b = conditional_bits_2b // 2
             print(format(new_cond_bits,'b'))
         print("*********")
-        #grab AND/OR, LE/GE bits for each element in our calculated conditional list
-        #starting at the rightmost side of the integer
-        #EVEN indexed bits are AND/OR -> 0/1
-        #ODD indexed bits are LE/GE -> 0/1
-        #KYLE : maybe we might want a separate grabber method for individual bit pairs?
-        for idx in range(9):
-            #and_or_or_1 = conditional_bits_1 & 1
-            conditional_bits_1 = conditional_bits_1 // 2#>> 1
-            le_or_ge_1 = conditional_bits_1 % 2 #& 1
-            conditional_bits_1 = conditional_bits_1 // 2 #>> 1
+        # grab AND/OR, LE/GE bits for each element in our calculated conditional list
+        # starting at the rightmost side of the integer
+        # EVEN indexed bits are AND/OR -> 0/1
+        # ODD indexed bits are LE/GE -> 0/1
+        # KYLE : maybe we might want a separate grabber method for individual bit pairs?
+
+        """Crossover by obtainig LE/GE bit from 1st parent and the AND/OR bit from 2nd parent"""
+        for _ in range(NUM_FEATURES):
+            # and_or_or_1 = conditional_bits_1 % 2
+            conditional_bits_1 = conditional_bits_1 // 2 # >> 1
+            le_or_ge_1 = conditional_bits_1 % 2 # & 1
+            conditional_bits_1 = conditional_bits_1 // 2 # >> 1
             
-            and_or_or_2 = conditional_bits_2 % 2 #& 1
-            conditional_bits_2 = conditional_bits_2 // 2#>> 1
-            #le_or_ge_2 = conditional_bits_2 & 1
-            conditional_bits_2 = conditional_bits_2 // 2 #>> 1
+            and_or_or_2 = conditional_bits_2 % 2 # & 1
+            conditional_bits_2 = conditional_bits_2 // 2 # >> 1
+            # le_or_ge_2 = conditional_bits_2 % 2 # & 1
+            conditional_bits_2 = conditional_bits_2 // 2 # >> 1
 
             
             # add less than/greater than bit from first parent
-            new_bitset * 2 #<< 1
-            new_bitset = new_bitset + le_or_ge_1   
+            new_bitset *= 2 # << 1
+            new_bitset += le_or_ge_1   
             
 
             #add and/or bit from second parent
-            new_bitset * 2 #<< 1
-            new_bitset = new_bitset + and_or_or_2
+            new_bitset *= 2 # << 1
+            new_bitset += and_or_or_2
 
             print(format(new_bitset,'b'))
             
-        final_action_rule = ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
-        #Mutation
-        for i in range(9):
-            mutate = random.random()
-            if mutate < MUTATION_RATES_VALUES:
+        """Mutation"""
+        for i in range(NUM_FEATURES):
+            random_sample_prob = random.random()
+            if random_sample_prob < MUTATION_RATE_VALUES:
                 #This is dumb, should be range not current value
-                new_conditional_vals[i] = new_conditional_vals[i] + (random.random() - 0.5) * new_conditional_vals[i]
-            if mutate < MUTATION_RATES_BITS:
+                new_conditional_vals[i] += (random.random() - 0.5) * new_conditional_vals[i]
+            if random_sample_prob < MUTATION_RATE_BITS:
                 new_bit_mask = 0
                 new_bit_mask << random.randint(0,18)
                 new_bit_mask = new_bit_mask + 1
-                final_action_rule.update_conditional_attributes(new_bit_mask)
         
-        return final_action_rule
+        return ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
     
 
     # Function to print state information and provide syntax examples for accessing protobuf messags

@@ -167,7 +167,7 @@ class ActionRule:
         """
         return self.conditional_bits
 
-    def update_conditional_values(self, update_vec: ndarray[float]):
+    def update_conditional_values(self, update_vec: ndarray):
         """
         Updates the values encoded within the conditional.
         @param update_vec: New values to use in the conditional, as a numpy vector.
@@ -175,7 +175,7 @@ class ActionRule:
         """
         self.conditional_vals = update_vec
 
-    def get_conditional_values(self) -> ndarray[int]:
+    def get_conditional_values(self) -> ndarray:
         """
         @return: The values encoded within the conditional.
         """
