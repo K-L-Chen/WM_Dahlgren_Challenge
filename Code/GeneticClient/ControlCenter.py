@@ -21,7 +21,8 @@ class ControlCenter:
         The function aims to choose the best action of the set for each target. It therefore filters out redundant
         actions and ensures every weapon assigned has a unique target.
 
-        @param proposed_actions: A dictionary of sets of proposed (weapon_system, ship, ActionRule) tuples.
+        @param proposed_actions: A dict
+        ionary of sets of proposed (weapon_system, ship, ActionRule) tuples.
             - format: {track_id: {(weapon, ship, action_rule_that_applies)}}
         @param trackid_to_track: A dictionary with track IDs as keys and tracks as objects
         """

@@ -14,7 +14,7 @@ from publisher import Publisher
 
 """
 These libraries are not being used, since we pretty much have already implemented
-everything so far througto take advantage of the functionality of these two libraries.
+everything so far to take advantage of the functionality of these two libraries.
 
 from pyharmonysearch import harmony_search
 import pygad
@@ -271,15 +271,17 @@ class AiManager:
         @param reward: the final score received after a scenario has concluded
         @return: None
         """
+        #setup step size
+        step = 1e-5
 
         # update fitness values
-
+        
         # accuracy_sum = 0
         for action_rule_executed in self.actions_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
             # I'm not sure why `step` was deleted earlier
-            action_rule_executed.update_predicted_values(reward, step = 1e-5)
-            print("placeholder, uncomment the above line after finishing the above TODO")
+            action_rule_executed.update_predicted_values(reward, step)
+            #print("placeholder, uncomment the above line after finishing the above TODO")
 
         # for action in best_actions:
         #     action.update_fitness(accuracy_sum)
@@ -289,6 +291,8 @@ class AiManager:
         # we can read rate of change between our steps to swap between algorithms
         # or do a cutoff
         # use a global flag var? remember this code runs every step
+
+        #this is to judge what our current slope is going to be
         prev_step = 0
 
         if self.swap:
@@ -315,24 +319,40 @@ class AiManager:
                 ^ unlikely to be the case, but just an edge case I wanted to throw out there
                 ^ instead of replacing with the mean, we could replace with the action rule with the highest fitness
             """
+            #count to create the dictionary
             count = 0
 
             for wai in self.weapon_AIs:
-                self.control_center
+                #self.control_center
                 if(count % 10 == 0):
                     #TODO implement DBSCAN
                     pass
 
-                proposed_actions = set(wai.request(WeaponPb, AssetPb, TrackPb))
+                #sets to shove ActionRule, targets into
                 correct_actions = set()
+                current_targets = set()
+
+                #evaluate actions in the action set and grab the best ones
                 for action in wai.action_set:
                     ga_actions = wai.evaluate(WeaponPb, AssetPb, TrackPb, action)
                     if ga_actions:
+                        action.update_predicted_values(reward + 1, step)
                         correct_actions.update(action)
 
+                wai.update_action_set(correct_actions)
+
+                for track in StatePb.Tracks:
+                    if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
+                        current_targets.update(track)
+
+                proposed_actions_dict = {}
+                proposed_actions = set(wai.request(WeaponPb, AssetPb, TrackPb))
+                proposed_actions_dict[count] = proposed_actions
+
+                count = count + 1
+
             cur_step, prev_step = 0, 0
-            step_size = 1.0
-            rate_of_change = (cur_step - prev_step) / step_size
+            rate_of_change = (cur_step - prev_step) / step
 
             # swap flag based on genetic algorithm rate of change
             if rate_of_change < 5:
@@ -348,6 +368,7 @@ class AiManager:
         for weapon in asset.weapons:
             if weapon.Quantity > 0: return True
         return False
+    
 
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg: StatePb):
