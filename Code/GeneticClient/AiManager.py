@@ -389,7 +389,7 @@ class AiManager:
         @return:
         '''
         #Combine the two conditional_vals arrays
-        new_conditional_vals = ActionRule1.getConditionalValues() + ActionRule2.get_conditional_values()/2
+        new_conditional_vals = (ActionRule1.get_conditional_values() + ActionRule2.get_conditional_values())//2
         
         #Combine the two bitsets
         new_bitset = 0
@@ -403,23 +403,27 @@ class AiManager:
         #KYLE : maybe we might want a separate grabber method for individual bit pairs?
         for idx in range(9):
             #and_or_or_1 = conditional_bits_1 & 1
-            conditional_bits_1 = conditional_bits_1 >> 1
-            le_or_ge_1 = conditional_bits_1 & 1
-            conditional_bits_1 = conditional_bits_1 >> 1
-
-            and_or_or_2 = conditional_bits_2 & 1
-            conditional_bits_2 = conditional_bits_2 >> 1
+            conditional_bits_1 = conditional_bits_1 // 2#>> 1
+            le_or_ge_1 = conditional_bits_1 % 2 #& 1
+            conditional_bits_1 = conditional_bits_1 // 2 #>> 1
+            
+            and_or_or_2 = conditional_bits_2 % 2 #& 1
+            conditional_bits_2 = conditional_bits_2 // 2#>> 1
             #le_or_ge_2 = conditional_bits_2 & 1
-            conditional_bits_2 = conditional_bits_2 >> 1
+            conditional_bits_2 = conditional_bits_2 // 2 #>> 1
 
             
             # add less than/greater than bit from first parent
+            new_bitset * 2 #<< 1
             new_bitset = new_bitset + le_or_ge_1   
-            new_bitset << 1
+            
 
             #add and/or bit from second parent
+            new_bitset * 2 #<< 1
             new_bitset = new_bitset + and_or_or_2
-            new_bitset << 1
+
+            print(new_bitset)
+            
         final_action_rule = ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
         #Mutation
         for i in range(9):
