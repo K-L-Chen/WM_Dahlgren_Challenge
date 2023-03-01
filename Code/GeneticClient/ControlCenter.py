@@ -3,7 +3,7 @@ The ControlCenter's role is to make overarching decisions, authorizing each weap
 """
 import random
 from PlannerProto_pb2 import WeaponPb, AssetPb, TrackPb
-from ActionRule import ActionRule
+from ActionRuleClass import ActionRule
 
 
 class ControlCenter:

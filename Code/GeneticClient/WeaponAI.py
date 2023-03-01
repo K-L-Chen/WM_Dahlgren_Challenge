@@ -5,7 +5,7 @@ Chainshot logic, and another in charge of Cannonball logic.
 
 This class is analogous to the B-cell from the immunized classifier paper.
 """
-from ActionRule import ActionRule, CONDITIONAL_NAMES, CONDITIONAL_ATTRIBUTE_COUNT
+from ActionRuleClass import ActionRule, CONDITIONAL_NAMES, CONDITIONAL_ATTRIBUTE_COUNT
 from PlannerProto_pb2 import AssetPb, TrackPb, WeaponPb, StatePb
 import utils
 import pandas as pd
@@ -34,13 +34,13 @@ class WeaponAI:
 
         if filename:
             self.action_df = pd.read_csv(filename)
-            self.action_set = set(ActionRule(bounds) for bounds in self.action_df.to_numpy())
+            self.action_set = np.array([ActionRule(bounds) for bounds in self.action_df.to_numpy()])
 
         else:
             if init_policy_population is None:
                 raise RuntimeError("Must specify `init_policy_population` parameter for WeaponAI constructor")
 
-            self.action_set = set(ActionRule() for _ in range(init_policy_population))
+            self.action_set = np.array([ActionRule() for _ in range(init_policy_population)])
             self.action_df = pd.DataFrame(
                 data=[np.append(a.conditional_vals, a.conditional_bits) for a in self.action_set],
                 columns=CONDITIONAL_NAMES + ['cond_bits']
@@ -75,16 +75,16 @@ class WeaponAI:
         return proposed_actions
     
 
-    def update_action_set(self, new_actions: set[ActionRule]):
+    def update_action_set(self, new_actions: list[ActionRule]):
         """
         Adds more action rules to consider through AI discovery
         e.g. a genetic algorithm's children
         
         @param new_actions: a set of new action rules to add
         """
-        assert type(new_actions) == set
+        assert type(new_actions) == list
 
-        self.action_set.update(new_actions)
+        self.action_set.extend(new_actions)
         new_data = pd.DataFrame(
             data=[np.append(n.conditional_vals, n.conditional_bits) for n in new_actions],
             columns=CONDITIONAL_NAMES + ['cond_bits']
@@ -124,10 +124,11 @@ class WeaponAI:
         #ODD indexed bits are LE/GE -> 0/1
         #KYLE : maybe we might want a separate grabber method for individual bit pairs?
         for idx in range(CONDITIONAL_ATTRIBUTE_COUNT):
-            and_or_or = conditional_bits & 1
-            conditional_bits = conditional_bits >> 1
-            le_or_ge = conditional_bits & 1
-            conditional_bits = conditional_bits >> 1
+            # and_or_or = conditional_bits & 1
+            and_or_or = conditional_bits % 2
+            conditional_bits = conditional_bits // 2
+            le_or_ge = conditional_bits % 2
+            conditional_bits = conditional_bits // 2
 
             current_truth = False
 
