@@ -84,7 +84,7 @@ class WeaponAI:
         """
         assert type(new_actions) == list
 
-        self.action_set.extend(new_actions)
+        np.append(self.action_set, new_actions)
         new_data = pd.DataFrame(
             data=[np.append(n.conditional_vals, n.conditional_bits) for n in new_actions],
             columns=CONDITIONAL_NAMES + ['cond_bits']

@@ -257,6 +257,8 @@ class AiManager:
                 # Calculating the prob. distribution of the fitness values to help with random
                 # sampling of the parents
                 fitness_values = np.array([rule.get_fitness() for rule in weaponType_actRules])
+                fitness_values = np.where(fitness_values == 0, 1 / len(fitness_values), fitness_values)
+                fitness_values = np.where(fitness_values < 0, -fitness_values, fitness_values)
                 fitness_based_probs = fitness_values / np.sum(fitness_values)
 
                 # rounds to the nearest even number
@@ -356,7 +358,7 @@ class AiManager:
             new_bitset *= 2 # << 1
             new_bitset += and_or_or_2
 
-            print(new_bitset)
+            # print(new_bitset)
             
         """Mutation"""
         for i in range(NUM_FEATURES):
