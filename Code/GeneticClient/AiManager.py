@@ -6,6 +6,7 @@ from PlannerProto_pb2 import ScenarioConcludedNotificationPb, \
 from PlannerProto_pb2 import ErrorPb  # Error messsage if scenario fails
 from PlannerProto_pb2 import StatePb, AssetPb, TrackPb  # Simulation state information
 from PlannerProto_pb2 import OutputPb, ShipActionPb, WeaponPb
+from ActionRule import ActionRule
 from publisher import Publisher
 
 # import pygad as pga
@@ -44,7 +45,9 @@ WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 #switch to false once we start running for the competition
 TRAINING = True
 POPULATION_SIZE = 100
-
+NUM_ELITES = 5
+MUTATION_RATES_VALUES = 0.3 #How likely are individual cond_value entries to mutate
+MUTATION_RATES_BITS = 0.05 #How likely are individual cond_bits to mutate
 
 class AiManager:
 
@@ -323,42 +326,46 @@ class AiManager:
             """
             #count to create the dictionary
             count = 0
+            for i in range(100):
+                for wai in self.weapon_AIs:
+                    #self.control_center
+                    if(count % 10 == 0):
+                        #TODO implement DBSCAN
+                        pass
 
-            for wai in self.weapon_AIs:
-                #self.control_center
-                if(count % 10 == 0):
-                    #TODO implement DBSCAN
-                    pass
+                    #sets to shove ActionRule, targets into
+                    correct_actions = set()
+                    current_targets = set()
+                    
+                    bred_avgs = set()
 
-                #sets to shove ActionRule, targets into
-                correct_actions = set()
-                current_targets = set()
+                    #evaluate actions in the action set and grab the best ones
+                    for action in wai.action_set:
+                        ga_actions = wai.evaluate(WeaponPb, AssetPb, TrackPb, action)
+                        if ga_actions:
+                            action.update_predicted_values(reward + 1, step)
+                            correct_actions.update(action)
 
-                #evaluate actions in the action set and grab the best ones
-                for action in wai.action_set:
-                    ga_actions = wai.evaluate(WeaponPb, AssetPb, TrackPb, action)
-                    if ga_actions:
-                        action.update_predicted_values(reward + 1, step)
-                        correct_actions.update(action)
+                    length = len(correct_actions)
+                    for i in range(NUM_ELITES):
+                        a = (int)(random() * length)
+                        b = (int)(random() * length * length + 1) % length
+                        bred_avgs.update(self.breed_avg(correct_actions[a], correct_actions[b]))
+                        
+                    wai.update_action_set(bred_avgs)
 
-                wai.update_action_set(correct_actions)
+                    proposed_actions_dict = {}
+                    proposed_actions_dict[count] = set(wai.request(WeaponPb, AssetPb, TrackPb))
 
-                for track in StatePb.Tracks:
-                    if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
-                        current_targets.update(track)
+                    count = count + 1
 
-                proposed_actions_dict = {}
-                proposed_actions = set(wai.request(WeaponPb, AssetPb, TrackPb))
-                proposed_actions_dict[count] = proposed_actions
+                cur_step, prev_step = 0, 0
+                rate_of_change = (cur_step - prev_step) / step
 
-                count = count + 1
-
-            cur_step, prev_step = 0, 0
-            rate_of_change = (cur_step - prev_step) / step
-
-            # swap flag based on genetic algorithm rate of change
-            if rate_of_change < 5:
-                self.swap = True
+                # swap flag based on genetic algorithm rate of change
+                if rate_of_change < 5:
+                    self.swap = True
+                    break
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
@@ -370,6 +377,63 @@ class AiManager:
         for weapon in asset.weapons:
             if weapon.Quantity > 0: return True
         return False
+    
+    #Takes two ActionRules and produces a third ActionRule
+    def breed_avg(self, ActionRule1 : ActionRule, ActionRule2 : ActionRule):
+        '''
+        gets the breeded average value for our correct solutions
+
+        @param ActionRule1: good rule 1
+        @param ActionRule2: good rule 2
+
+        @return:
+        '''
+        #Combine the two conditional_vals arrays
+        new_conditional_vals = ActionRule1.getConditionalValues() + ActionRule2.get_conditional_values()/2
+        
+        #Combine the two bitsets
+        new_bitset = 0
+        
+        conditional_bits_1 = ActionRule1.get_cond_bitstr()
+        conditional_bits_2 = ActionRule2.get_cond_bitstr()
+        #grab AND/OR, LE/GE bits for each element in our calculated conditional list
+        #starting at the rightmost side of the integer
+        #EVEN indexed bits are AND/OR -> 0/1
+        #ODD indexed bits are LE/GE -> 0/1
+        #KYLE : maybe we might want a separate grabber method for individual bit pairs?
+        for idx in range(9):
+            #and_or_or_1 = conditional_bits_1 & 1
+            conditional_bits_1 = conditional_bits_1 >> 1
+            le_or_ge_1 = conditional_bits_1 & 1
+            conditional_bits_1 = conditional_bits_1 >> 1
+
+            and_or_or_2 = conditional_bits_2 & 1
+            conditional_bits_2 = conditional_bits_2 >> 1
+            #le_or_ge_2 = conditional_bits_2 & 1
+            conditional_bits_2 = conditional_bits_2 >> 1
+
+            
+            # add less than/greater than bit from first parent
+            new_bitset = new_bitset + le_or_ge_1   
+            new_bitset << 1
+
+            #add and/or bit from second parent
+            new_bitset = new_bitset + and_or_or_2
+            new_bitset << 1
+        final_action_rule = ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
+        #Mutation
+        for i in range(9):
+            mutate = random.random()
+            if mutate < MUTATION_RATES_VALUES:
+                #This is dumb, should be range not current value
+                new_conditional_vals[i] = new_conditional_vals[i] + (random.random() - 0.5) * new_conditional_vals[i]
+            if mutate < MUTATION_RATES_BITS:
+                new_bit_mask = 0
+                new_bit_mask << random.randint(0,18)
+                new_bit_mask = new_bit_mask + 1
+                final_action_rule.update_conditional_attributes(new_bit_mask)
+        
+        return final_action_rule
     
 
     # Function to print state information and provide syntax examples for accessing protobuf messags
