@@ -333,15 +333,15 @@ class AiManager:
         new_bitset = 0
         
         conditional_bits_1 = action_rule_1.get_cond_bitstr()
-        conditional_bits_1b = action_rule_1.get_cond_bitstr()
+        #conditional_bits_1b = action_rule_1.get_cond_bitstr()
         conditional_bits_2 = action_rule_2.get_cond_bitstr()
-        conditional_bits_2b = action_rule_2.get_cond_bitstr()
+        #conditional_bits_2b = action_rule_2.get_cond_bitstr()
 
-        new_cond_bits = 0
+        #new_cond_bits = 0
         
-        lena = conditional_bits_1b.bit_length()
-        lenb = conditional_bits_2b.bit_length()
-        bitlen = 0
+        #lena = conditional_bits_1b.bit_length()
+        #lenb = conditional_bits_2b.bit_length()
+        #bitlen = 0
         
         # for _ in range(NUM_FEATURES):
         #     tempA = conditional_bits_1b % 2
