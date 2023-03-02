@@ -58,7 +58,7 @@ class AiManager:
 
     # Constructor
     def __init__(self, publisher: Publisher):
-        print("Constructing AI Manager")
+        #print("Constructing AI Manager")
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
@@ -98,14 +98,14 @@ class AiManager:
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
         self.actRules_executed_this_round = []  # empty the list of the weapons executed this round
         self.simulation_count += 1
-        print("Scenario run: " + str(msg.sessionId))
+        #print("Scenario run: " + str(msg.sessionId))
 
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
         self.training_update(msg.score)
-        print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+        #print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
 
     def createActions(self, msg: StatePb) -> OutputPb:
@@ -190,6 +190,7 @@ class AiManager:
 
     def training_update(self, reward: int):
         """
+        RUNS AFTER SIMULATION END
         Updates ActionRule fitness values and does training/updates on the ActionRules using either GA or HS
         @param reward: the final score received after a scenario has concluded
         @return: None
@@ -197,6 +198,8 @@ class AiManager:
         #setup step size
         step = 1e-5
 
+        for wai in self.weapon_AIs:
+            wai.save_rules("{}".format(wai.type))
         # update fitness values
         
         # accuracy_sum = 0
@@ -272,7 +275,6 @@ class AiManager:
                                                         size = num_parents, 
                                                         replace = False,
                                                         p = fitness_based_probs)
-                
 
 
 
@@ -304,6 +306,12 @@ class AiManager:
             # if rate_of_change < 5:
             #     self.swap = True
             #     break
+
+    def training_helper(self):
+        #god help us
+        '''
+        Help us shorten training_update
+        '''
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
@@ -371,8 +379,8 @@ class AiManager:
             # le_or_ge_2 = conditional_bits_2 % 2 # & 1
             conditional_bits_2 = conditional_bits_2 // 2 # >> 1
 
-            print("Less than/greater than bit from parent 1: " + str(le_or_ge_1))
-            print("And/Or Bit from parent 2: " + str(and_or_or_2))
+            #print("Less than/greater than bit from parent 1: " + str(le_or_ge_1))
+            #print("And/Or Bit from parent 2: " + str(and_or_or_2))
             # add less than/greater than bit from first parent
             #new_bitset *= 2 # << 1
             new_bitset += le_or_ge_1 * 2 ** (i * 2 + 1)
@@ -381,7 +389,7 @@ class AiManager:
             #new_bitset *= 2 # << 1
             new_bitset += and_or_or_2 * 2 ** (i * 2)
 
-            print(format(new_bitset,'0b'))
+            #print(format(new_bitset,'0b'))
             
         """Mutation"""
         for i in range(NUM_FEATURES):

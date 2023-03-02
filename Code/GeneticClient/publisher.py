@@ -15,7 +15,7 @@ class Publisher:
 
     # Constructor
     def __init__(self):
-        print("Constructing publisher")
+        #print("Constructing publisher")
         self.msgNum = 0
         context = zmq.Context()
         self.socket = context.socket(zmq.PUB)
@@ -30,7 +30,7 @@ class Publisher:
         self.msgNum += 1
         header.ContentType = simpleName
         any = container.Content.Pack(msg)
-        print(f"Publishing {simpleName}")
+        #print(f"Publishing {simpleName}")
         return container
 
     # Sends message to specified IP and port

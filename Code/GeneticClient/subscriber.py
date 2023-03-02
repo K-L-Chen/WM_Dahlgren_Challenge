@@ -15,7 +15,7 @@ class Subscriber:
 
     # Constructor
     def __init__(self):
-        print("Constructing subscriber")
+        #print("Constructing subscriber")
         self.subscriber_functions = []
 
     # Determines functions of AiManager that subscribe to protomessages
@@ -23,7 +23,7 @@ class Subscriber:
 
         # Create subscriber instance of AI manager class
         self.ai_manager = ai_manager
-        print("Registering subscribers")
+        #print("Registering subscribers")
 
         # Get method names of all subscribers in AiManager with "receive" in function name
         self.subscriber_functions = [method_name for method_name in dir(ai_manager)
@@ -32,8 +32,8 @@ class Subscriber:
 
         # Print registered methods for user error checking
         # If you funciton isn't printed here it will not be called 
-        for function_name in self.subscriber_functions:
-            print(function_name + " registered")
+        #for function_name in self.subscriber_functions:
+            #print(function_name + " registered")
 
     # Starts TCP socket and main recieve loop
     def startSubscriber(self):
@@ -51,13 +51,13 @@ class Subscriber:
                 t.join(1)
         except KeyboardInterrupt:
             event.set()
-            print("Process terminated...")
+            #print("Process terminated...")
             sys.exit()
 
     # Receives messages from the Planner and passes them to related functions in AiManager
     def recvloop(self, socket, event):
         while not event.is_set():
-            print("Waiting to recv.")
+            #print("Waiting to recv.")
 
             #  On each message recvd, deserialize the message bytes into a MsgContainerPb
             msg = socket.recv()
@@ -65,7 +65,7 @@ class Subscriber:
             serialized.ParseFromString(msg)
 
             msgType = serialized.Header.ContentType
-            print(f"Received a message of type: {msgType}")
+            #print(f"Received a message of type: {msgType}")
 
             if hasattr(proto_messages, msgType):
                 for function in self.subscriber_functions:

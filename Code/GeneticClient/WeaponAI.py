@@ -166,7 +166,7 @@ class WeaponAI:
         # TODO Figure out the formatting for the file output
         self.action_df.to_csv(filename, sep='\n')
 
-    def save_rules_txt(self, filename):
+    '''def save_rules_txt(self, filename):
         # just in case pandas is not allowed
         """
         This function saves all ActionRules to a file named filename, overwriting that file if it already exists, and
@@ -177,9 +177,8 @@ class WeaponAI:
         """
 
         # TODO Figure out the formatting for the file output
-        pass
-
-
+        with open(filename, "w") as rf:'''
+            
     def set_state_info(self, state_pb: StatePb, blacklist: set) -> None:
         """
         Use this function to give this WeaponAI access to the current StatePb and blacklist.
