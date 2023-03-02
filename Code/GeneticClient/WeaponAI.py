@@ -34,7 +34,7 @@ class WeaponAI:
 
         if filename:
             self.action_df = pd.read_csv(filename)
-            self.action_set = np.array([ActionRule(bounds) for bounds in self.action_df.to_numpy()])
+            self.action_set = np.array([ActionRule(bounds[:-2], bounds[-2], bounds[-1]) for bounds in self.action_df.to_numpy()])
 
         else:
             if init_policy_population is None:
@@ -42,8 +42,8 @@ class WeaponAI:
 
             self.action_set = np.array([ActionRule() for _ in range(init_policy_population)])
             self.action_df = pd.DataFrame(
-                data=[np.append(a.conditional_vals, a.conditional_bits) for a in self.action_set],
-                columns=CONDITIONAL_NAMES + ['cond_bits']
+                data=[np.append(a.conditional_vals, [a.conditional_bits, a.predicted_value]) for a in self.action_set],
+                columns=CONDITIONAL_NAMES + ['cond_bits', 'p_val']
             )
 
     def request(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb) -> list[tuple[WeaponPb, AssetPb, ActionRule]]:

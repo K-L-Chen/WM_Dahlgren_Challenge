@@ -45,7 +45,7 @@ if len(CONDITIONAL_NAMES) != CONDITIONAL_ATTRIBUTE_COUNT:
 
 
 class ActionRule:
-    def __init__(self, conditional_vals: np.ndarray = None, cond_bits: int = None):
+    def __init__(self, conditional_vals: np.ndarray = None, cond_bits: int = None, fitness: int = None):
         # fields for updating ActionRule fitness
         self.predicted_value = 0.0
         self.predicted_val_error = 0.0
@@ -72,9 +72,10 @@ class ActionRule:
         #      )
 
         # manually specify conditional_vals and conditional_bits
-        if conditional_vals is not None and cond_bits is not None:
+        if conditional_vals is not None and cond_bits is not None and fitness is not None:
             self.conditional_vals = conditional_vals
             self.conditional_bits = cond_bits
+            self.predicted_value = fitness
 
         # throw error if input is invalid
         elif (conditional_vals is None and cond_bits is not None) or \

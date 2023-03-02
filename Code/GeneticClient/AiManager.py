@@ -71,6 +71,7 @@ class AiManager:
         # in this competition, WEAPON_TYPES = ["Cannon", "Chainshot"]
         self.weapon_AIs = dict()
         for weapon_type in WEAPON_TYPES:
+            #self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type, init_policy_population=POPULATION_SIZE, filename=weapon_type+".csv")
             self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type, init_policy_population=POPULATION_SIZE)
         print("test")
         self.control_center = ControlCenter()
@@ -104,11 +105,11 @@ class AiManager:
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
-        self.training_update(msg.score)
+        
 
         #once completed, we save everything and update values in WeaponAi obj
-        self.training_update(2)
-
+        self.training_update(msg.score)
+        
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
 
@@ -135,7 +136,7 @@ class AiManager:
 
         output_message.actions.extend(self.engage_targets(msg))
         #writing csv here constantly overwrites it, slowing us down(?)
-        #self.training_update(2)
+        ## self.training_update(2)
 
         return output_message
 
@@ -206,12 +207,9 @@ class AiManager:
         @return: None
         """
         #setup step size
-        step = 1e-5
-
-        for wname in WEAPON_TYPES:
-            self.weapon_AIs[wname].save_rules("{}".format(wname))
-        # update fitness values
+        step = 1e-3
         
+        # update fitness values
         # accuracy_sum = 0
         for action_rule_executed in self.actRules_executed_this_round:
             # accuracy_sum += action.update_predicted_values(reward)
@@ -270,7 +268,7 @@ class AiManager:
 
                 # Calculating the prob. distribution of the fitness values to help with random
                 # sampling of the parents
-                fitness_values = np.array([rule.get_fitness() for rule in weaponType_actRules])
+                fitness_values = np.array([rule.predicted_value for rule in weaponType_actRules])
                 # fitness_values = np.where(fitness_values == 0, 1 / len(fitness_values), fitness_values)
                 # fitness_values = np.where(fitness_values < 0, -fitness_values, fitness_values)
                 # fitness_based_probs = fitness_values / np.sum(fitness_values)
@@ -316,6 +314,14 @@ class AiManager:
             # if rate_of_change < 5:
             #     self.swap = True
             #     break
+        
+        # probably save after doing updates
+        for wname in WEAPON_TYPES:
+            for action in self.weapon_AIs[wname].action_set:
+                if action.predicted_value != 0:
+                    print(action.predicted_value)
+            self.weapon_AIs[wname].save_rules("{}".format(wname))
+
 
     def check_thread_is_alive(self):
         #god help us
@@ -417,7 +423,7 @@ class AiManager:
                 new_bit_mask << random.randint(0,18)
                 new_bit_mask = new_bit_mask + 1
         
-        return ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset)
+        return ActionRule(conditional_vals = new_conditional_vals, cond_bits= new_bitset, fitness=0.5 * (action_rule_1.predicted_value + action_rule_2.predicted_value))
     
 
     # Function to print state information and provide syntax examples for accessing protobuf messags
