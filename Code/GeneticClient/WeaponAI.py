@@ -85,11 +85,15 @@ class WeaponAI:
         assert type(new_actions) == list
 
         np.append(self.action_set, new_actions)
-        new_data = pd.DataFrame(
-            data=[np.append(n.conditional_vals, n.conditional_bits) for n in new_actions],
-            columns=CONDITIONAL_NAMES + ['cond_bits']
-        )
-        self.action_df = pd.concat([self.action_df, new_data], ignore_index=True)
+        self.action_df = pd.DataFrame(columns=CONDITIONAL_NAMES + ['cond_bits', 'p_val'])
+        for a in self.action_set:
+            self.action_df.loc[len(self.action_df.index)] = np.append(a.conditional_vals, [a.conditional_bits, a.predicted_value])
+        # new_data = pd.DataFrame(
+        #     data=[np.append(n.conditional_vals, [n.conditional_bits, n.predicted_value]) for n in new_actions],
+        #     columns=CONDITIONAL_NAMES + ['cond_bits', 'p_val']
+        # )
+        # self.action_df = pd.concat([self.action_df, new_data], ignore_index=True)
+        print(self.action_df)
 
 
     def evaluate(self, weapon: WeaponPb, ship: AssetPb, target: TrackPb, action_rule: ActionRule) -> bool:
