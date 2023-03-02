@@ -322,18 +322,6 @@ class AiManager:
                     print(action.predicted_value)
             self.weapon_AIs[wname].save_rules("{}".format(wname))
 
-
-    def check_thread_is_alive(self):
-        #god help us
-        '''
-        Help us shorten training_update and speed up the genetic algorithm
-        by checking if the our current thread is about to die
-        If the current thread IS going to die soon, we set the csvs
-        @return: None
-        '''
-
-        
-
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
         for asset in assets:
