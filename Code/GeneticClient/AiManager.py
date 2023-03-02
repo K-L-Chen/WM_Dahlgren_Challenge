@@ -105,7 +105,11 @@ class AiManager:
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
         self.training_update(msg.score)
-        #print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+
+        #once completed, we save everything and update values in WeaponAi obj
+        self.training_update(2)
+
+        print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
 
     def createActions(self, msg: StatePb) -> OutputPb:
@@ -125,12 +129,13 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        filedescriptor = open("log.txt", "w+")
+        '''filedescriptor = open("log.txt", "w+")
         filedescriptor.write("createActions called\n")
-        filedescriptor.close()
-        
+        filedescriptor.close()'''
+
         output_message.actions.extend(self.engage_targets(msg))
-        self.training_update(2)
+        #writing csv here constantly overwrites it, slowing us down(?)
+        #self.training_update(2)
 
         return output_message
 
@@ -312,11 +317,16 @@ class AiManager:
             #     self.swap = True
             #     break
 
-    def training_helper(self):
+    def check_thread_is_alive(self):
         #god help us
         '''
-        Help us shorten training_update
+        Help us shorten training_update and speed up the genetic algorithm
+        by checking if the our current thread is about to die
+        If the current thread IS going to die soon, we set the csvs
+        @return: None
         '''
+
+        
 
     # Helper methods for determining whether any weapons are left
     def weapons_are_available(self, assets: list[AssetPb]) -> bool:
