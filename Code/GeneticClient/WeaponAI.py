@@ -164,7 +164,7 @@ class WeaponAI:
         """
 
         # TODO Figure out the formatting for the file output
-        self.action_df.to_csv(filename, sep='\n')
+        self.action_df.to_csv('{}.csv'.format(filename), index=False)#sep='\n')
 
     '''def save_rules_txt(self, filename):
         # just in case pandas is not allowed

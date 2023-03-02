@@ -72,7 +72,7 @@ class AiManager:
         self.weapon_AIs = dict()
         for weapon_type in WEAPON_TYPES:
             self.weapon_AIs[weapon_type] = WeaponAI(weapon_type=weapon_type, init_policy_population=POPULATION_SIZE)
-
+        print("test")
         self.control_center = ControlCenter()
 
         # to keep track of all actions that were executed this round
@@ -125,7 +125,12 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
+        filedescriptor = open("log.txt", "w+")
+        filedescriptor.write("createActions called\n")
+        filedescriptor.close()
+        
         output_message.actions.extend(self.engage_targets(msg))
+        self.training_update(2)
 
         return output_message
 
@@ -198,8 +203,8 @@ class AiManager:
         #setup step size
         step = 1e-5
 
-        for wai in self.weapon_AIs:
-            wai.save_rules("{}".format(wai.type))
+        for wname in WEAPON_TYPES:
+            self.weapon_AIs[wname].save_rules("{}".format(wname))
         # update fitness values
         
         # accuracy_sum = 0
