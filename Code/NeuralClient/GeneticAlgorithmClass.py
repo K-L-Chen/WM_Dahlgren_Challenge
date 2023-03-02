@@ -92,6 +92,11 @@ class GeneticAlgorithm:
         
         return c1,c2,c3 
 
+    #Resets the fitness of all neural nets to 0, to be used between generations.
+    def reset_fitness(self):
+        for neural_net in self.population:
+            neural_net.set_fitness(0)
+            
     #Culls and rebuilds the population
     def cull(self):
         self.population.sort(reverse=True, key=operator.attrgetter("fitness"))
@@ -100,9 +105,17 @@ class GeneticAlgorithm:
         for i in range(CLONES, POPULATION_SIZE, 3):
             self.population[i], self.population[i+1], self.population[i+2] = \
                 self.breed(new_pairings[i//3][0],new_pairings[i//3][1])
+        self.resetFitness()
             
-    def set_population(self, new_population):
-        self.population = population
+
+    #Sets an entirely new population. Only called when loading an old population from a file.
+    def set_population(self, population_fp: str):
+        self.population = torch.load(population_fp)
+
+    def save_population(self, population_fp: str):
+        torch.save(self.population, population_fp)
+
+
 
 
 """

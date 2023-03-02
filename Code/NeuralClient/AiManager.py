@@ -13,7 +13,7 @@ import torch
 
 import random
 
-import GeneticAlgorithm
+from GeneticAlgorithmClass import GeneticAlgorithm
 
 """
 This class contains the basic genetic algorithm. Its has the required functionality 
@@ -32,6 +32,7 @@ Threat: an incoming enemy missile starting from a random locations. There are no
 
 THRESHOLD = .3
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
+GENERATION_SIZE = 100
 
 class AiManager:
 
@@ -42,6 +43,7 @@ class AiManager:
         self.track_danger_levels = None
         self.blacklist = set()
         self.simulation_count = 0
+        self.generations_passed = 0
 
         # initialize GeneticAlgorithm
         self.GA = GeneticAlgorithm()
@@ -69,20 +71,22 @@ class AiManager:
 
         pass
 
-    #This method is responsible for training our genetic algorithm. It runs every NN in the population
-    #Through some number of simulations, then calls cull(). 
-    def train(self):
-        self.GA.cull()
-
-    def save_population(self):
-        return None
+    def save_population(self, filename:str):
+        self.GA.save_population(filename)
+        
     
     def load_population(self, filename):
-        return None
+        self.GA.set_population(filename)
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         # empty blacklist
+        if self.currentNN >= GENERATION_SIZE:
+            self.save_population("population.pt")
+            self.GA.cull() #
+            self.generations_passed = self.generations_passed + 1
+            print("Generations Passed: " + str(self.generations_passed))
+            self.currentNN = 0
         self.blacklist = set()
         self.GA.POPULATION[self.currentNN].setFitness(self.GA.POPULATION[self.currentNN].getFitness() + msg.score)
         self.currentNN += 1
@@ -170,10 +174,16 @@ class AiManager:
         # map output to OutputPb
         final_output = []
         locations = torch.where(output > THRESHOLD) # find all values that are larger than our specified threshold
+
         for loc in locations:
             assignedWeaponType = loc % 2
+            # mod 60 because 2 weapon types/enemy * 30 enemies; there are 60 total actions per ship
+            # and we are stacking all the ships' actions sequentially
+            # div 2 because node 0 and 1 are 1st target, node 2 and 3 are 2nd target, etc.
             assignedTarget = (loc % 60) // 2
-            assignedShip = (loc // 60)
+            # read explanation above, mod 60 gets us to specific index of a target, and
+            # div 60 gets us to identify the ship
+            assignedShip = loc // 60
 
             # mask output of NeuralNet to filter out impossible outputs
             if assignedTarget >= len(targets) or assignedShip > len(msg.assets):
@@ -185,7 +195,8 @@ class AiManager:
 
             # construct ship action
             ship_action: ShipActionPb = ShipActionPb()
-            ship_action.TargetId = targets[assignedTarget].TrackId
+            ship_action.TargetId = assignedTarget
+            # ship_action.TargetId = targets[assignedTarget].TrackId
             ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
             ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
             

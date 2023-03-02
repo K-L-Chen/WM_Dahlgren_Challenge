@@ -87,6 +87,10 @@ class AiManager:
 
         return output_message
 
+
+    def reinforcement_strategy(self, msg:StatePb):
+        state = 
+
     
     def simple_greedy_strategy(self, msg:StatePb):
         """
