@@ -8,6 +8,8 @@ from publisher import Publisher
 import random
 import utils
 
+import torch
+
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
 # this class could be used toolbox that a more complex AI classes reference.
@@ -33,6 +35,8 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
+
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    
 
     # Is passed StatePb from Planner
