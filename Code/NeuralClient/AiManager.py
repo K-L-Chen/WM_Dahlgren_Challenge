@@ -8,13 +8,15 @@ from scipy.special import softmax
 from publisher import Publisher
 
 import numpy as np
-from numpy import ndarray
+# from numpy import ndarray
 import torch
 from collections import OrderedDict
 # import random
 
 from GeneticAlgorithmClass import GeneticAlgorithm
 from GeneticAlgorithmClass import POPULATION_SIZE
+
+from pathlib import Path
 
 """
 This class contains the basic genetic algorithm. Its has the required functionality 
@@ -31,10 +33,12 @@ Definitions/clarifications:
 Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
 """
 
-THRESHOLD = .3
+THRESHOLD = 0.6
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 GENERATION_SIZE = POPULATION_SIZE
 FITNESS_SCALE = 1e-5
+
+POPULATION_SAVE_DIR = (Path('.') / "population_history_Mar_3").absolute()
 
 class AiManager:
 
@@ -111,10 +115,10 @@ class AiManager:
         self.currentNN += 1
         # empty blacklist
         if self.currentNN == GENERATION_SIZE:
-            self.save_population("population.pt")
+            self.save_population(POPULATION_SAVE_DIR / f"pop_gen{self.generations_passed}.pt")
             self.GA.cull_and_rebuild() 
             self.generations_passed = self.generations_passed + 1
-            print("Generations Passed: " + str(self.generations_passed))
+            # print("Generations Passed: " + str(self.generations_passed))
             self.currentNN = 0
         else:
             self.GA.population[self.currentNN].set_fitness(self.GA.population[self.currentNN].get_fitness() + FITNESS_SCALE * msg.score)
@@ -330,9 +334,9 @@ class AiManager:
             # self.blacklist.add(targets[assignedTarget].TrackId)
             self.blacklist.add(assignedTarget)
 
-        if len(final_output) > 0:
-            print(f"Number of actions taken: {len(final_output)}")
-            print(final_output)
+        # if len(final_output) > 0:
+        #     print(f"Number of actions taken: {len(final_output)}")
+        #     print(final_output)
         return final_output
     
     # Function to print state information and provide syntax examples for accessing protobuf messags
