@@ -25,8 +25,8 @@ class Subscriber:
         
         # Print registered methods for user error checking
         # If you funciton isn't printed here it will not be called 
-        for function_name in self.subscriber_functions:
-            print(function_name + " registered")
+        #for function_name in self.subscriber_functions:
+        #    print(function_name + " registered")
 
     # Starts TCP socket and main recieve loop
     def startSubscriber(self):

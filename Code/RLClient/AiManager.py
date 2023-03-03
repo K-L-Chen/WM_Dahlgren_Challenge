@@ -7,8 +7,16 @@ from publisher import Publisher
 
 import random
 import utils
-
 import torch
+import torch.optim as optim
+import torch.nn as nn
+import math  
+import np
+
+import DQN
+import Memory
+import Environment
+from Environment import Environment
 
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
@@ -27,6 +35,22 @@ Definitions/clarifications:
 Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
 """
 
+# BATCH_SIZE is the number of transitions sampled from the replay buffer
+# GAMMA is the discount factor as mentioned in the previous section
+# EPS_START is the starting value of epsilon
+# EPS_END is the final value of epsilon
+# EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
+# TAU is the update rate of the target network
+# LR is the learning rate of the AdamW optimizer
+BATCH_SIZE = 128
+GAMMA = 0.99
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 1000
+TAU = 0.005
+LR = 1e-4
+WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
+
 class AiManager:
 
     # Constructor
@@ -37,6 +61,22 @@ class AiManager:
         self.blacklist = set()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # Get number of actions from current action space (n_actions)
+        # Get the number of state observations (n_observations)
+
+        # TODO — figure out what this means, implement it
+
+        self.policy_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
+        self.target_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
+        self.memory = Memory(10000) # use some arbitrary buffer size
+
+        self.steps_done = 0
+
+        self.asset_mapper = {}
    
 
     # Is passed StatePb from Planner
@@ -83,125 +123,73 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.simple_greedy_strategy(msg))
+        output_message.actions.extend(self.reinforcement_strategy(msg))
 
         return output_message
 
 
     def reinforcement_strategy(self, msg:StatePb):
-        state = 
-
-    
-    def simple_greedy_strategy(self, msg:StatePb):
         """
-        Greedy target selection based on distance of enemy missile to any asset
-
-        Only one weapon is used per timestep.
-
-        Parameters
-        ----------
-        msg: StatePb - received data from the planner
-
-        Returns
-        -------
-        list[ShipAction], each ShipAction indicating a weapon-target assignment
+        Epsilon Greedy Strategy 
         """
+        global steps_done
+        sample = random.random()
+        eps_threshold = EPS_END + (EPS_START - EPS_END) * \
+            math.exp(-1. * steps_done / EPS_DECAY) # calculate epsilon threshold
+        steps_done += 1 # update steps done
 
-         # calculate danger levels
-        DANGER_DISTANCE_SCALE = 10000000
-        TARGETING_CUTOFF = 0.2
-        MAX_DANGER = 100
-           
-        # list of (danger value, enemy missile info.) tuples
-        self.track_danger_levels = []
-        
-        # assign a danger level for each incoming threat and have the threats sorted from most to least dangerous
-        # Danger level is based on the summed distance to all of our assets
-        for track in msg.Tracks:
-            if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
-                # calculate danger value for current track
-                danger_metric = MAX_DANGER
-                for asset in msg.assets:
-                    danger_metric -= utils.distance(asset.PositionX, asset.PositionY, asset.PositionZ, track.PositionX, track.PositionY, track.PositionZ) / DANGER_DISTANCE_SCALE
+        if sample > eps_threshold: # pick the best reward
+            with torch.no_grad():
+                # create state input vector to pass to policy_net
+                input_vector = torch.Tensor(np.zeros(220))
+                for defense_ship in msg.assets: # add defense ships to input_vector
+                    if defense_ship.AssetName not in self.asset_mapper:
+                        # asset_mapper guarantees that our assets appear in the same locations consistently
+                        self.asset_mapper[defense_ship.AssetName] = len(self.asset_mapper) 
+                    input_vector[6 * self.asset_mapper[defense_ship.AssetName]:6 * (self.asset_mapper[defense_ship.AssetName] + 1)] = [defense_ship.health, 
+                                                                    defense_ship.weapons[0].Quantity, defense_ship.weapons[1].Quantity, 
+                                                                    defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
                 
-                # insert in sorted order
-                loc = 0
-                while loc < len(self.track_danger_levels) - 1 and danger_metric < self.track_danger_levels[0][0]:
-                    loc += 1
-                self.track_danger_levels.insert(loc, (danger_metric, track)) if loc < len(self.track_danger_levels) - 1 else self.track_danger_levels.append((danger_metric, track))
+                # missles need not appear in the same location every time, they just need to be considered. 
+                enemy_targets = []
+                etarget_idx = 0
+                for target in msg.Tracks: # add targets to input_vector
+                    if target.ThreatRelationship == "Hostile": #and target.TrackId not in self.blacklist:
+                        input_vector[40 + 6 * etarget_idx: 40 + 6 * (1 + etarget_idx)] = [target.PositionX, target.PositionY, target.PositionZ, 
+                                                                                        target.VelocityX, target.VelocityY, target.VelocityZ]
+                        etarget_idx += 1
+                        enemy_targets.append(target)
 
-        # print(self.track_danger_levels)
-        
-        # if there are any threat and we have weapons
-        # and the most dangerous threat value > MAX_DANGER * TARGETING_CUTOFF
-        if len(self.track_danger_levels) > 0  and self.weapons_are_available(msg.assets):
+                # feed our input_vector into policy_net, then get the action with the largest value 
+                max = self.policy_net(input_vector).max(1)[1].view(1, 1)
+
+                assignedWeaponType = max % 2
+                # mod 60 because 2 weapon types/enemy * 30 enemies; there are 60 total actions per ship
+                # and we are stacking all the ships' actions sequentially
+                # div 2 because node 0 and 1 are 1st target, node 2 and 3 are 2nd target, etc.
+                assignedTarget = (max % 60) // 2
+                # read explanation above, mod 60 gets us to specific index of a target, and
+                # div 60 gets us to identify the ship
+                assignedShip = max // 60
+
+                # mask output of NeuralNet to filter out impossible outputs
+                if assignedTarget >= len(enemy_targets) or assignedShip > len(msg.assets):
+                    pass
+
+                # dont consider this action if testing and the target is already in the blacklist
+                if not self.training and enemy_targets[assignedTarget].TrackId in self.blacklist:
+                    pass
+
+                # construct ship action
+                ship_action: ShipActionPb = ShipActionPb()
+                ship_action.TargetId = assignedTarget
+                # ship_action.TargetId = targets[assignedTarget].TrackId
+                ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
+                ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
+                
+                return [ship_action]
             
-            # generate list of our defense ships that aren't targeting and have any weapons left
-            unassigned_assets = []
-            for asset in msg.assets:
-                if asset.AssetName != "Galleon_REFERENCE_SHIP" and self.weapons_in_asset(asset):
-                    unassigned_assets.append(asset)
-
-                    
-            # find closest (s_dist) asset (s_ass) to danger through comparisons
-            
-            # compare to the first asset
-            s_ass = unassigned_assets[0]
-            most_danger_threat = self.track_danger_levels[0][1]
-            
-            s_dist = utils.distance(s_ass.PositionX, s_ass.PositionY, s_ass.PositionZ, 
-                                    most_danger_threat.PositionX, most_danger_threat.PositionY, most_danger_threat.PositionZ)
-            
-            # comparisons
-            for asset in unassigned_assets:
-                asset_dist = utils.distance(asset.PositionX, asset.PositionY, asset.PositionZ, 
-                                        most_danger_threat.PositionX, most_danger_threat.PositionY, most_danger_threat.PositionZ)
-                if asset_dist < s_dist:
-                    s_dist = asset_dist
-                    s_ass = asset
-
-            # send a response back to the planner
-            
-            ship_action: ShipActionPb = ShipActionPb()
-            ship_action.TargetId = most_danger_threat.TrackId       
-            ship_action.AssetName = s_ass.AssetName
-
-            self.blacklist.add(most_danger_threat.TrackId)
-
-            # random weapon selection, but it may not be ready or there may not be any left
-            rand_weapon = random.choice(s_ass.weapons)
-
-            # therefore, randomly scurry around until we have an immediate weapon to launch
-            while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
-                rand_weapon = random.choice(s_ass.weapons)
-
-            ship_action.weapon = rand_weapon.SystemName
-        
-            return [ship_action]
-
-        else:
-            return []
-    
-    
-    def random_WTA_strategy(self, msg:StatePb):
-        """
-        Random Weapon-Target assignments strategy
-
-        Random target selection, asset to shoot from, and weapon type
-
-        Only one weapon is used per timestep.
-
-        Parameters
-        ----------
-        msg: StatePb - received data from the planner
-
-        Returns
-        -------
-        list[ShipAction], each ShipAction indicating a weapon-target assignment
-        """
-
-        # if there are any enemy missiles and we have weapons
-        if len(msg.Tracks) > 0 and self.weapons_are_available(msg.assets):
+        else: # random
             # set up a data response to send later
             ship_action: ShipActionPb = ShipActionPb()
 
@@ -230,8 +218,56 @@ class AiManager:
         
             return [ship_action]
 
-        else:
-            return []
+    def rl_update(self):
+        """
+        Run this function when the score gets updated (we get feedback)
+        TODO — this entire function is sus....
+        """
+
+        # fetch memory values since last score update TODO — nail down format for this batch object
+        batch = self.memory.sample()
+
+        # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
+        # detailed explanation). This converts batch-array of Transitions
+        # to Transition of batch-arrays.
+        # batch = Transition(*zip(*transitions))
+
+        # Compute a mask of non-final states and concatenate the batch elements
+        # (a final state would've been the one after which simulation ended)
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                            batch.next_state)), device=self.device, dtype=torch.bool)
+        non_final_next_states = torch.cat([s for s in batch.next_state
+                                                    if s is not None])
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+
+        # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
+        # columns of actions taken. These are the actions which would've been taken
+        # for each batch state according to policy_net
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+
+        # Compute V(s_{t+1}) for all next states.
+        # Expected values of actions for non_final_next_states are computed based
+        # on the "older" target_net; selecting their best reward with max(1)[0].
+        # This is merged based on the mask, such that we'll have either the expected
+        # state value or 0 in case the state was final.
+        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        with torch.no_grad():
+            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+        # Compute the expected Q values
+        expected_state_action_values = (next_state_values * GAMMA) + reward_batch
+
+        # Compute Huber loss
+        criterion = nn.SmoothL1Loss()
+        loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
+
+        # Optimize the model
+        self.optimizer.zero_grad()
+        loss.backward()
+        # In-place gradient clipping
+        torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
+        self.optimizer.step()
         
         
     # Helper methods for determining whether any weapons are left 
