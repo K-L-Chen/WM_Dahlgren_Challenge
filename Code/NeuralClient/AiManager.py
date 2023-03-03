@@ -246,7 +246,7 @@ class AiManager:
 
             # construct ship action
             ship_action: ShipActionPb = ShipActionPb()
-            if assignedTarget in self.threatTrackId_to_NNidx:
+            if assignedTarget in self.threatTrackId_to_NNidx and assignedShip in self.assetName_to_NNidx.values():
                 ship_action.TargetId = assignedTarget
                 # ship_action.TargetId = targets[assignedTarget].TrackId
                 ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
