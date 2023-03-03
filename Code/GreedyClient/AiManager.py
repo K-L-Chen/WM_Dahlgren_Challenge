@@ -239,8 +239,7 @@ class AiManager:
                 utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict, missile_target_dict)
             
 
-            for missileName in missile_dict:
-                utils.expected_value(missile_dict[missileName], targeted_ships_dict, missile_target_dict)
+            for 
             #Calculate the most targeted ship
             most_targeted_ship = utils.find_most_targeted_ship(targeted_ships_dict)
 
