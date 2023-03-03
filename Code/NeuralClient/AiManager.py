@@ -58,9 +58,10 @@ class AiManager:
         self.assetName_to_NNidx: dict[str, int] = {}
         self.setAssetName_to_NNidx = True 
 
-        # serves same purpose as above but for threats
-        self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
-        self.ttId_to_NNidx_counter = 0
+        # we need the trackId of the enemy missile for the output
+        self.threatId_to_trackId: dict[int, int] = {}
+        # self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+        # self.ttId_to_NNidx_counter = 0
 
         self.training = True
 
@@ -120,8 +121,9 @@ class AiManager:
 
         self.setAssetName_to_NNidx = True 
         self.assetName_to_NNidx: dict[str, int] = {}
-        self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
-        self.ttId_to_NNidx_counter = 0
+        self.threatId_to_trackId: dict[int, int] = {}
+        # self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+        # self.ttId_to_NNidx_counter = 0
 
 
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
@@ -184,43 +186,69 @@ class AiManager:
                 - z velocity
         """
 
+        # TODO: whenever a weapon is assigned, make its weapon type for that ship
+        # unavaliable; the msg is still at one timestep so it cannot tell us this info
+        # until one step later
+
         # assemble input vector and indexed targets object
         input_vector = np.zeros(210)
         # dship_idx = 0
 
         ship_weaponType_to_ammo = OrderedDict()
 
-        for weapon_system_name in WEAPON_TYPES:
-            ship_weaponType_to_ammo[weapon_system_name] = 0
-
+        assets_remaining = set()
         for defense_ship in msg.assets:
             if 'REFERENCE' not in defense_ship.AssetName:
+                # default is zero in case info. from one weapon type isn't provided
+                for weapon_type in WEAPON_TYPES:
+                    ship_weaponType_to_ammo[weapon_type] = 0
+                
+                assets_remaining.add(defense_ship.AssetName)
+
                 # get the ammo for this specific ship
                 for weapon in defense_ship.weapons:
-                    ship_weaponType_to_ammo[weapon.SystemName] += 1
+                    ship_weaponType_to_ammo[weapon.SystemName] = weapon.Quantity
+                
+                assert len(ship_weaponType_to_ammo) == len(WEAPON_TYPES)
                 
                 # helps preserve order of ship nodes in input of neural net
                 dship_idx = self.assetName_to_NNidx[defense_ship.AssetName]
                 
                 input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
                                                                 defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
-                # clear out to properly count for the next ship
-                for weapon_sys_name in ship_weaponType_to_ammo:
-                    ship_weaponType_to_ammo[weapon_sys_name] = 0
                 # dship_idx += 1
-            
+
+
+        # forces a copy of the original keys
+        keys_to_keep = list(self.assetName_to_NNidx)
+        # remove the assets that are now gone
+        for asset_name in keys_to_keep:
+            if asset_name not in assets_remaining:
+                del self.assetName_to_NNidx[asset_name]
+
+
         # targets = []
         # target_idx = 0
-        for target in msg.Tracks:
-            if target.ThreatRelationship == "Hostile" and target.TrackId not in self.blacklist:
-                # want to make one-to-one mapping between hostile TrackId and neural net idx
-                if target.TrackId not in self.threatTrackId_to_NNidx:
-                    self.threatTrackId_to_NNidx[target.TrackId] = self.ttId_to_NNidx_counter
-                    self.ttId_to_NNidx_counter += 1
+        for track in msg.Tracks:
+            # focus on only the enemy missiles
+            if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
+                # # want to make one-to-one mapping between hostile TrackId and neural net idx
+                # if target.TrackId not in self.threatTrackId_to_NNidx:
+                    # self.threatTrackId_to_NNidx[target.TrackId] = self.ttId_to_NNidx_counter
+                    # self.ttId_to_NNidx_counter += 1
 
-                target_idx = self.threatTrackId_to_NNidx[target.TrackId]
-                input_vector[30 + 6 * target_idx: 30 + 6 * (1 + target_idx)] = [target.PositionX, target.PositionY, target.PositionZ, 
-                                                                                target.VelocityX, target.VelocityY, target.VelocityZ]
+                try:
+                    target_threatId = int(track.ThreatId.split("_")[-1])
+                # i.e. ValueError happens with the MIN_RAID Planner simulation case where
+                # track.ThreatId = "ENEMY MISSILE"
+                except ValueError:
+                    assert track.ThreatId == "ENEMY MISSILE"
+                    target_threatId = 0
+
+                self.threatId_to_trackId[target_threatId] = track.TrackId
+
+                input_vector[30 + 6 * target_threatId: 30 + 6 * (1 + target_threatId)] = [track.PositionX, track.PositionY, track.PositionZ, 
+                                                                                track.VelocityX, track.VelocityY, track.VelocityZ]
                 # target_idx += 1
                 # targets.append(target)
         
@@ -248,9 +276,8 @@ class AiManager:
 
             # mask output of NeuralNet to filter out impossible outputs
             # if assignedTarget >= len(targets) or assignedShip > len(msg.assets):
-            if assignedTarget not in self.threatTrackId_to_NNidx or \
-                assignedShip not in self.assetName_to_NNidx:
-                # TODO this
+            if assignedTarget not in self.threatId_to_trackId or \
+                assignedShip not in self.assetName_to_NNidx.values():
                 continue
 
             # dont consider this action if testing or the target is already in the blacklist
@@ -260,17 +287,46 @@ class AiManager:
 
             # construct ship action
             ship_action: ShipActionPb = ShipActionPb()
-            if assignedTarget in self.threatTrackId_to_NNidx and assignedShip in self.assetName_to_NNidx.values():
-                ship_action.TargetId = assignedTarget
-                # ship_action.TargetId = targets[assignedTarget].TrackId
-                ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
-                ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
+
+            # if assignedTarget in self.threatTrackId_to_NNidx and assignedShip in self.assetName_to_NNidx.values():
+            ship_action.TargetId = self.threatId_to_trackId[assignedTarget]
+            # ship_action.TargetId = targets[assignedTarget].TrackId
+            # ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
+
+            nnIdx_to_assetName = {v:k for k, v in self.assetName_to_NNidx.items()}
+            # reject if asset is dead
+            if assignedShip not in nnIdx_to_assetName:
+                continue 
+            # at this point, we know that the asset does exist
+            ship_action.AssetName = nnIdx_to_assetName[assignedShip]
+
+            ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
+
+            selectedShip_weaponType_to_info = {}
+            for asset in msg.assets:
+                if asset.AssetName == ship_action.AssetName:
+                    for weapon in asset.weapons:
+                        selectedShip_weaponType_to_info[weapon.SystemName] = [weapon.WeaponState, weapon.Quantity]
+
+            # selectedShip_weaponType_to_info = {weapon.SystemName:[weapon.WeaponState, weapon.Quantity] for \
+            #                                     weapon in msg.assets[assignedShip+1].weapons}
             
-                # add action to datasets
-                final_output.append(ship_action)
-                # self.blacklist.add(targets[assignedTarget].TrackId)
-                self.blacklist.add(assignedTarget)
-    
+            # reject if weapon state is not ready or is out of ammo:
+            if ship_action.weapon not in selectedShip_weaponType_to_info:
+                continue 
+            else:
+                weapon_info = weapon_info[ship_action.weapon]
+                if weapon_info[0] != "Ready" or weapon_info[1] == 0:
+                    continue
+        
+            # add action to datasets
+            final_output.append(ship_action)
+            # self.blacklist.add(targets[assignedTarget].TrackId)
+            self.blacklist.add(assignedTarget)
+
+        if len(final_output) > 0:
+            print(f"Number of actions taken: {len(final_output)}")
+            print(final_output)
         return final_output
     
     # Function to print state information and provide syntax examples for accessing protobuf messags

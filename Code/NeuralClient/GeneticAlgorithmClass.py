@@ -8,10 +8,10 @@ import torch.nn
 import operator
 
 #Hyperparameters - note POPULATION_SIZE - CLONES must be divisible by 3!
-# POPULATION_SIZE = 100 # Number of neural nets in each generation
-POPULATION_SIZE = 10
-# CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
-CLONES = 4
+POPULATION_SIZE = 100 # Number of neural nets in each generation
+# POPULATION_SIZE = 10
+CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
+# CLONES = 4
 PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) // 3
 
 assert (POPULATION_SIZE - CLONES) % 3 == 0
