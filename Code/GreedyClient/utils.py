@@ -18,25 +18,35 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         asset_y = asset.PositionY
 
         expected_y = missile_slope * (asset_x - missile_x) + missile_y
-
-        if (asset_y - expected_y) ** 2 < 1e5: #This threshold may not be right. Will need empirical testing.
-            if asset in target_dict:
+        print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
+        print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
+        if (asset_y - expected_y)**2 < 1e5: #This threshold may not be right. Will need empirical testing.
+            if asset.AssetName in target_dict:
                 target_dict[asset.AssetName].append(missile)
             else:
                 target_dict[asset.AssetName] = [missile]
+
+            return
     
     print("No target found. Choosing randomly.")
     asset = choice(asset_list)
-    if asset in target_dict:
+    if asset.AssetName in target_dict:
         target_dict[asset.AssetName].append(missile)
     else:
         target_dict[asset.AssetName] = [missile]
 
 #Argument: a dictionary mapping each asset to a list of missiles targeting it
-#Returns the most-targeted ship
-def find_most_targeted_ship(target_dict: dict[str,_TRACKPB], assets_dict: dict[str,_ASSETPB]):
-    most_targeted_ship = max(target_dict, key=len(target_dict.get))
-    return assets_dict[most_targeted_ship]
+#Returns the NAME of the most-targeted ship
+def find_most_targeted_ship(target_dict: dict[str,list[_TRACKPB]]):
+    max_targeting_missiles = 0
+    most_targeted_ship = None
+    for assetName in target_dict:
+        if len(target_dict[assetName]) > max_targeting_missiles:
+            max_targeting_missiles = len(target_dict[assetName])
+            most_targeted_ship = assetName
+    
+    #most_targeted_ship = max(target_dict, key=len(target_dict.get()))
+    return most_targeted_ship
 
 #Arguments: the most targeted ship and the list of missiles targeting it
 #Returns the closest missile to that ship
@@ -44,7 +54,7 @@ def find_closest_missile(mts : _ASSETPB, missiles_list : list[_TRACKPB]):
     min_dist = 10000000000
     min_missile = missiles_list[0]
     for missile in missiles_list:
-        dist = distance(missile.PositionX,missile.PositionY,missile.PositionZ,mts.PositionX,mts.PositionY,mts.positionZ)
+        dist = distance(missile.PositionX,missile.PositionY,missile.PositionZ,mts.PositionX,mts.PositionY,mts.PositionZ)
         if dist < min_dist:
             min_dist = dist
             min_missile = missile

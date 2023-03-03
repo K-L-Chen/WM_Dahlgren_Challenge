@@ -54,7 +54,7 @@ class AiManager:
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
-        self.logfile = open('log{}.txt'.format(msg.sessionId), 'w')
+        self.logfile = open('log{}_simple.txt'.format(msg.sessionId), 'w')
 
         
     # This method/message is used to nofify that a scenario/run has ended
@@ -81,7 +81,11 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.low_resources_strategy(msg))
+        switch = True
+        if switch:
+            output_message.actions.extend(self.low_resources_strategy(msg))
+        else:
+            output_message.actions.extend(self.simple_greedy_strategy(msg))
 
         return output_message
 
@@ -233,7 +237,7 @@ class AiManager:
             most_targeted_ship = utils.find_most_targeted_ship(targeted_ships_dict)
 
             #Find the closest missile targeting the most-targeted ship
-            missile_to_target = utils.find_closest_missile(most_targeted_ship, targeted_ships_dict[most_targeted_ship])
+            missile_to_target = utils.find_closest_missile(assets_dict[most_targeted_ship], targeted_ships_dict[most_targeted_ship])
 
             #Find the closest ship available to attack the closest missle targeting the most targeted ship
             closest_ready_asset = utils.find_closest_ready_asset(missile_to_target,unassigned_assets)
