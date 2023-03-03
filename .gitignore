@@ -13,6 +13,7 @@ TextFiles/DahlgrenChallengeLitRev.blg
 /Code/Planner/scripts
 /Code/Planner/Example_Clients/JavaClient
 /Code/Planner/Planner-3.0-jar-with-dependencies.jar
+/Code/*.txt
 *.pyc
 ~$Planner_Instruction_Manual.pptx
 venv
