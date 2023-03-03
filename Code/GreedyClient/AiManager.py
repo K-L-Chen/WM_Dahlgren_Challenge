@@ -265,7 +265,7 @@ class AiManager:
 
             ship_action.weapon = rand_weapon.SystemName
             
-            self.saveStateInfoToFile(msg)
+            # self.saveStateInfoToFile(msg)
 
             return [ship_action]
         else:

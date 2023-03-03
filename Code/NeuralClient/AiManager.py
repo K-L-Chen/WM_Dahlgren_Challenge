@@ -38,7 +38,7 @@ WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 GENERATION_SIZE = POPULATION_SIZE
 FITNESS_SCALE = 1e-5
 
-POPULATION_SAVE_DIR = (Path('.') / "population_history_Mar_3").absolute()
+POPULATION_SAVE_DIR = (Path(__file__).parent / "population_history_Mar_3").absolute()
 
 class AiManager:
 
@@ -91,7 +91,7 @@ class AiManager:
         self.simulation_count += 1
         self.setAssetName_to_NNidx = True
 
-        self.logfile = open('log{}_neural.txt'.format(msg.sessionId),'w')
+        # self.logfile = open('log{}_neural.txt'.format(msg.sessionId),'w')
         pass
 
     def save_population(self, filename:str):
