@@ -38,7 +38,7 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
     dist_btwn_missile_target = distance_between_missile_and_ship(missile, asset_list[0])
     closest_asset = asset_list[0]
     assigned = False
-    trajectory_list = []
+    #trajectory_list = []
     for asset in asset_list:
         asset_x = asset.PositionX
         asset_y = asset.PositionY
@@ -48,11 +48,12 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         #print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
         
         if (asset_y - expected_y)**2 < 1e6: #This threshold may not be right. Will need empirical testing.
-            trajectory_list.append(asset)
+            #trajectory_list.append(asset)
             if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
             # if closest_asset.AssetName in target_dict.keys() and missile in target_dict[closest_asset.AssetName]:
             #     target_dict[cur_target.AssetName].remove(missile)
                 closest_asset = asset
+                dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
             #dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
             if asset.AssetName in target_dict.keys():
                 target_dict[asset.AssetName].append(missile)
@@ -71,8 +72,11 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         missile_target_dict[missile.TrackId] = closest_asset
             #return
 
-    for asset in trajectory_list:
-        dist_to_asset = distanc
+    # for asset in trajectory_list:
+    #     dist_to_asset = distance_between_missile_and_ship(missile, asset)
+    #     if dist_to_asset < dist_btwn_missile_target:
+    #         dist_btwn_missile_target = dist_to_asset
+    #         missile_target_dict[missile.TrackId] = asset
     
     # print("No target found. Choosing randomly.")
     # asset = choice(asset_list)
