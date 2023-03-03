@@ -20,17 +20,17 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         expected_y = missile_slope * (asset_x - missile_x) + missile_y
 
         if (asset_y - expected_y) ** 2 < 1e5: #This threshold may not be right. Will need empirical testing.
-            if asset in target_dict:
-                target_dict[asset].append(missile)
+            if asset.AssetName in target_dict:
+                target_dict[asset.AssetName].append(missile)
             else:
-                target_dict[asset] = [missile]
+                target_dict[asset.AssetName] = [missile]
     
     print("No target found. Choosing randomly.")
     asset = choice(asset_list)
-    if asset in target_dict:
-        target_dict[asset].append(missile)
+    if asset.AssetName in target_dict:
+        target_dict[asset.AssetName].append(missile)
     else:
-        target_dict[asset] = [missile]
+        target_dict[asset.AssetName] = [missile]
 
 #Argument: a dictionary mapping each asset to a list of missiles targeting it
 #Returns the most-targeted ship
