@@ -252,7 +252,8 @@ class AiManager:
                     # target_idx += 1
                     # targets.append(target)
             
-            input_vector = torch.Tensor(input_vector).to(self.device)
+            input_vector = torch.Tensor(input_vector, device=self.device)
+            output_vector = input_vector.unsqueeze(0)
             if sample > eps_threshold: # pick the best reward
                 with torch.no_grad():
 
@@ -262,7 +263,8 @@ class AiManager:
                     locations = torch.nonzero(output > THRESHOLD) # find all values that are larger than our specified threshold
 
                     ship_weaponType_blacklist = set()
-
+                    
+                    executedActionIdxes = []
                     for loc in locations:
                         # convert Tensor of one value to the integer it contains
                         loc = int(loc)
@@ -323,16 +325,18 @@ class AiManager:
                     
                         # add action to datasets
                         final_output.append(ship_action)
+                        executedActionIdxes.append(loc)
                         # self.blacklist.add(targets[assignedTarget].TrackId)
                         self.blacklist.add(assignedTarget)
 
                     if len(final_output) > 0:
                         print(f"Number of actions taken: {len(final_output)}")
                         print(final_output)
-                    return final_output, locations, input_vector
+
+                    return final_output, torch.Tensor(executedActionIdxes, device=self.device), output_vector
             else: # random
-                return *self.generate_random_action(msg), input_vector
-        return [], torch.Tensor([]).to(self.device), None
+                return *self.generate_random_action(msg), output_vector
+        return [], torch.Tensor([[]], device=self.device), None
 
     def generate_random_action(self, msg: StatePb):
         """
@@ -352,7 +356,7 @@ class AiManager:
         ship_action.TargetId = track_choice.TrackId
 
         if ship_action.TargetId in self.blacklist:
-            return [], torch.Tensor([]).to(self.device)
+            return [], torch.Tensor([[]], device=self.device)
         else:
             self.blacklist.add(ship_action.TargetId)             
 
@@ -386,7 +390,7 @@ class AiManager:
         
         reversed_NN_idx = 60 * self.assetName_to_NNidx[rand_asset.AssetName] + WEAPON_TO_IDX[ship_action.weapon] * 30 + target_threatId
 
-        return [ship_action], torch.Tensor([reversed_NN_idx]).to(self.device)
+        return [ship_action], torch.Tensor([reversed_NN_idx], device=self.device)
 
     def rl_update(self, score_change):
         """
