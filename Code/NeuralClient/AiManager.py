@@ -14,6 +14,7 @@ from collections import OrderedDict
 # import random
 
 from GeneticAlgorithmClass import GeneticAlgorithm
+from GeneticAlgorithmClass import POPULATION_SIZE
 
 """
 This class contains the basic genetic algorithm. Its has the required functionality 
@@ -32,7 +33,8 @@ Threat: an incoming enemy missile starting from a random locations. There are no
 
 THRESHOLD = .3
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
-GENERATION_SIZE = 100
+GENERATION_SIZE = POPULATION_SIZE
+FITNESS_SCALE = 1e-5
 
 class AiManager:
 
@@ -58,6 +60,7 @@ class AiManager:
 
         # serves same purpose as above but for threats
         self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+        self.ttId_to_NNidx_counter = 0
 
         self.training = True
 
@@ -101,19 +104,24 @@ class AiManager:
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
+
+        self.blacklist = set()
+        
+        self.currentNN += 1
         # empty blacklist
-        if self.currentNN >= GENERATION_SIZE:
+        if self.currentNN == GENERATION_SIZE:
             self.save_population("population.pt")
-            self.GA.cull() #
+            self.GA.cull_and_rebuild() 
             self.generations_passed = self.generations_passed + 1
             print("Generations Passed: " + str(self.generations_passed))
             self.currentNN = 0
-        self.blacklist = set()
-        self.GA.population[self.currentNN].setFitness(self.GA.population[self.currentNN].getFitness() + msg.score)
-        self.currentNN += 1
+        else:
+            self.GA.population[self.currentNN].set_fitness(self.GA.population[self.currentNN].get_fitness() + FITNESS_SCALE * msg.score)
 
+        self.setAssetName_to_NNidx = True 
         self.assetName_to_NNidx: dict[str, int] = {}
         self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+        self.ttId_to_NNidx_counter = 0
 
 
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
@@ -203,11 +211,12 @@ class AiManager:
             
         # targets = []
         # target_idx = 0
-        for i, target in enumerate(msg.Tracks):
+        for target in msg.Tracks:
             if target.ThreatRelationship == "Hostile" and target.TrackId not in self.blacklist:
                 # want to make one-to-one mapping between hostile TrackId and neural net idx
                 if target.TrackId not in self.threatTrackId_to_NNidx:
-                    self.threatTrackId_to_NNidx[target.TrackId] = i
+                    self.threatTrackId_to_NNidx[target.TrackId] = self.ttId_to_NNidx_counter
+                    self.ttId_to_NNidx_counter += 1
 
                 target_idx = self.threatTrackId_to_NNidx[target.TrackId]
                 input_vector[30 + 6 * target_idx: 30 + 6 * (1 + target_idx)] = [target.PositionX, target.PositionY, target.PositionZ, 
@@ -242,12 +251,12 @@ class AiManager:
             if assignedTarget not in self.threatTrackId_to_NNidx or \
                 assignedShip not in self.assetName_to_NNidx:
                 # TODO this
-                pass
+                continue
 
             # dont consider this action if testing or the target is already in the blacklist
             # if not self.training and targets[assignedTarget].TrackId in self.blacklist:
             if not self.training or assignedTarget in self.blacklist:
-                pass
+                continue
 
             # construct ship action
             ship_action: ShipActionPb = ShipActionPb()

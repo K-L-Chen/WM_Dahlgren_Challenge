@@ -34,3 +34,6 @@ navy_wta.tar*
 .vscode
 
 WilliamAndMary.zip
+
+# PyTorch
+*.pt

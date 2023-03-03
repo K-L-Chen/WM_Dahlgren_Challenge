@@ -8,11 +8,18 @@ import torch.nn
 import operator
 
 #Hyperparameters - note POPULATION_SIZE - CLONES must be divisible by 3!
-POPULATION_SIZE = 100 # Number of neural nets in each generation
-CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
-PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) / 3
+# POPULATION_SIZE = 100 # Number of neural nets in each generation
+POPULATION_SIZE = 10
+# CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
+CLONES = 4
+PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) // 3
+
+assert (POPULATION_SIZE - CLONES) % 3 == 0
 
 import math
+# ensure that there are enough number of possible pairings
+# to refill the entire population again to its original
+# population size
 assert math.comb(CLONES, 2) >= PAIRINGS_PER_GENERATION
 
 MAX_MUTATION_PERCENT = 0.4 # Can change a weight or a bias by up to MUTATION_SIZE of its current value
@@ -33,13 +40,27 @@ class GeneticAlgorithm:
         if population:
             self.population = population
             assert len(population) == POPULATION_SIZE
+    
+    
+    def cull_and_rebuild(self):
+        # Culls and rebuilds the population
+        self.population.sort(reverse=True, key=operator.attrgetter("fitness"))
+        survivors = self.population[0:CLONES]
+        new_pairings = self.generate_pairings(survivors)
+
+        j = 0
+        for i in range(CLONES, POPULATION_SIZE, 3):
+            self.population[i], self.population[i+1], self.population[i+2] = \
+                self.breed(new_pairings[j][0],new_pairings[j][1])
+            j += 1
+        # self.reset_fitness()
         
 
     #Input: a list of the surviving clones from the previous generation
     #Output: a list of tuples containing two parents
     def generate_pairings(self, parents):
         pairings = itertools.combinations(parents, 2)
-        return pairings[0:PAIRINGS_PER_GENERATION]
+        return tuple(pairings)[0:PAIRINGS_PER_GENERATION]
     
     #Inputs: two parents
     #Outputs: tuple of three children:
@@ -60,12 +81,16 @@ class GeneticAlgorithm:
 
         # children start off with parameters of `nn2`
         dict_params_c1 = dict(params_nn2)
-        dict_params_c2 = dict(params_nn2)
-        dict_params_c3 = dict(params_nn2)
+        dict_params_c2 = {k:v for k, v in dict_params_c1.items()}
+        dict_params_c3 = {k:v for k, v in dict_params_c2.items()}
 
         assert id(dict_params_c1) != id(dict_params_c2) \
             and id(dict_params_c1) != id(dict_params_c3) \
             and id(dict_params_c2) != id(dict_params_c3)
+
+        print(dict_params_c1.keys())
+        print(dict_params_c2.keys())
+        print(dict_params_c3.keys())
 
         for param_name, param_name_params in params_nn1:
             if param_name in dict_params_c1:
@@ -96,16 +121,6 @@ class GeneticAlgorithm:
     def reset_fitness(self):
         for neural_net in self.population:
             neural_net.set_fitness(0)
-            
-    #Culls and rebuilds the population
-    def cull(self):
-        self.population.sort(reverse=True, key=operator.attrgetter("fitness"))
-        survivors = self.population[0:CLONES]
-        new_pairings = self.generate_pairings(survivors)
-        for i in range(CLONES, POPULATION_SIZE, 3):
-            self.population[i], self.population[i+1], self.population[i+2] = \
-                self.breed(new_pairings[i//3][0],new_pairings[i//3][1])
-        self.resetFitness()
             
 
     #Sets an entirely new population. Only called when loading an old population from a file.
