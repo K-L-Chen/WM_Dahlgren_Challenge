@@ -17,6 +17,8 @@ from DQN import DQN
 from Memory import Memory
 import Environment
 from Environment import Environment
+from Memory import Transition
+from collections import OrderedDict
 
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
@@ -36,13 +38,13 @@ Threat: an incoming enemy missile starting from a random locations. There are no
 """
 
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
-# GAMMA is the discount factor as mentioned in the previous section
+# GAMMA is the discount factor
 # EPS_START is the starting value of epsilon
 # EPS_END is the final value of epsilon
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the AdamW optimizer
-BATCH_SIZE = 128
+BATCH_SIZE = 50
 GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
@@ -50,6 +52,11 @@ EPS_DECAY = 1000
 TAU = 0.005
 LR = 1e-4
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
+WEAPON_TO_IDX = {
+    "Cannon_System": 0,
+    "Chainshot_System": 1
+}
+THRESHOLD = 0.65
 
 class AiManager:
 
@@ -75,9 +82,31 @@ class AiManager:
         self.memory = Memory(10000) # use some arbitrary buffer size
 
         self.steps_done = 0
+        self.training = True
 
-        self.asset_mapper = {}
+        self.currentTransition = None
+
+        # helper mapper for input of neural net in order for it to know
+        # which ship is which in its input nodes;
+        # by default, you may not be able to get the 
+        # same ordering of assets each time you loop in msg.assets
+        self.assetName_to_NNidx: dict[str, int] = {}
+        self.setAssetName_to_NNidx = True 
+
+        # we need the trackId of the enemy missile for the output
+        self.threatId_to_trackId: dict[int, int] = {}
+        # self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+        # self.ttId_to_NNidx_counter = 0
    
+   # ran at the first timestep for the entire simulation
+    # to help the neural network preserve its ordering on
+    # which ship is which
+    def populate_assetName_to_NNidx(self, assets: list[AssetPb]):
+        i = 0 
+        for asset in assets:
+            if 'REFERENCE' not in asset.AssetName:
+                self.assetName_to_NNidx[asset.AssetName] = i
+                i += 1
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg:StatePb):
@@ -86,17 +115,32 @@ class AiManager:
         # self.printStateInfo(msg)
 
         # Call function to show example of building an action
-        output_message = self.createActions(msg)
+        output_message, action_vector, state_vector = self.createActions(msg)
         # print(output_message)
 
         # To advance in step mode, its required to return an OutputPb
         self.ai_pub.publish(output_message)
         #self.ai_pub.publish(OutputPb())
 
+        # update memory
+        if state_vector is not None:
+            if self.currentTransition != None: # update currentTransition with the next state
+                self.currentTransition[2] = state_vector
+                self.memory.push(self.currentTransition)
+            
+            self.currentTransition = [state_vector, action_vector, None, torch.Tensor([0]).to(self.device)]
+
+        if self.current_score != msg.score:
+            self.memory.backfill_batch(msg.score - self.current_score)
+            if len(self.memory) > 2: 
+                self.rl_update(msg.score - self.current_score)
+            self.current_score = msg.score
+
         
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
+        self.current_score = 0
 
         
     # This method/message is used to nofify that a scenario/run has ended
@@ -119,18 +163,26 @@ class AiManager:
         output_message: OutputPb with .actions: list[ShipAction] - list of A.I. actions from asset(s)
         """
 
+        if self.setAssetName_to_NNidx:
+            self.populate_assetName_to_NNidx(msg.assets)
+            self.setAssetName_to_NNidx = False
+
         output_message: OutputPb = OutputPb()
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.reinforcement_strategy(msg))
+        ship_actions, action_tensor, state_vector = self.reinforcement_strategy(msg)
 
-        return output_message
+        output_message.actions.extend(ship_actions)
+
+        return output_message, action_tensor, state_vector
 
 
     def reinforcement_strategy(self, msg:StatePb):
         """
         Epsilon Greedy Strategy 
+
+        TODO 
         """
         global steps_done
         sample = random.random()
@@ -138,59 +190,149 @@ class AiManager:
             math.exp(-1. * self.steps_done / EPS_DECAY) # calculate epsilon threshold
         self.steps_done += 1 # update steps done
 
-        if sample > eps_threshold: # pick the best reward
-            with torch.no_grad():
-                # create state input vector to pass to policy_net
-                input_vector = torch.Tensor(np.zeros(220))
-                for defense_ship in msg.assets: # add defense ships to input_vector
-                    if defense_ship.AssetName not in self.asset_mapper:
-                        # asset_mapper guarantees that our assets appear in the same locations consistently
-                        self.asset_mapper[defense_ship.AssetName] = len(self.asset_mapper) 
-                    input_vector[6 * self.asset_mapper[defense_ship.AssetName]:6 * (self.asset_mapper[defense_ship.AssetName] + 1)] = [defense_ship.health, 
-                                                                    defense_ship.weapons[0].Quantity, defense_ship.weapons[1].Quantity, 
+        if len(msg.Tracks) > 0 and self.weapons_are_available(msg.assets):
+            input_vector = np.zeros(210)
+            # dship_idx = 0
+
+            ship_weaponType_to_ammo = OrderedDict()
+
+            assets_remaining = set()
+            for defense_ship in msg.assets:
+                if 'REFERENCE' not in defense_ship.AssetName:
+                    # default is zero in case info. from one weapon type isn't provided
+                    for weapon_type in WEAPON_TYPES:
+                        ship_weaponType_to_ammo[weapon_type] = 0
+                    
+                    assets_remaining.add(defense_ship.AssetName)
+
+                    # get the ammo for this specific ship
+                    for weapon in defense_ship.weapons:
+                        ship_weaponType_to_ammo[weapon.SystemName] = weapon.Quantity
+                    
+                    assert len(ship_weaponType_to_ammo) == len(WEAPON_TYPES)
+                    
+                    # helps preserve order of ship nodes in input of neural net
+                    dship_idx = self.assetName_to_NNidx[defense_ship.AssetName]
+                    
+                    input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
                                                                     defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
-                
-                # missles need not appear in the same location every time, they just need to be considered. 
-                enemy_targets = []
-                etarget_idx = 0
-                for target in msg.Tracks: # add targets to input_vector
-                    if target.ThreatRelationship == "Hostile": #and target.TrackId not in self.blacklist:
-                        input_vector[40 + 6 * etarget_idx: 40 + 6 * (1 + etarget_idx)] = [target.PositionX, target.PositionY, target.PositionZ, 
-                                                                                        target.VelocityX, target.VelocityY, target.VelocityZ]
-                        etarget_idx += 1
-                        enemy_targets.append(target)
+                    # dship_idx += 1
 
-                # feed our input_vector into policy_net, then get the action with the largest value 
-                max = self.policy_net(input_vector).max(1)[1].view(1, 1)
 
-                assignedWeaponType = max % 2
-                # mod 60 because 2 weapon types/enemy * 30 enemies; there are 60 total actions per ship
-                # and we are stacking all the ships' actions sequentially
-                # div 2 because node 0 and 1 are 1st target, node 2 and 3 are 2nd target, etc.
-                assignedTarget = (max % 60) // 2
-                # read explanation above, mod 60 gets us to specific index of a target, and
-                # div 60 gets us to identify the ship
-                assignedShip = max // 60
+            # forces a copy of the original keys
+            keys_to_keep = list(self.assetName_to_NNidx)
+            # remove the assets that are now gone
+            for asset_name in keys_to_keep:
+                if asset_name not in assets_remaining:
+                    del self.assetName_to_NNidx[asset_name]
 
-                # mask output of NeuralNet to filter out impossible outputs
-                if assignedTarget >= len(enemy_targets) or assignedShip > len(msg.assets):
-                    pass
 
-                # dont consider this action if testing and the target is already in the blacklist
-                if not self.training and enemy_targets[assignedTarget].TrackId in self.blacklist:
-                    pass
+            # targets = []
+            # target_idx = 0
+            for track in msg.Tracks:
+                # focus on only the enemy missiles
+                if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
+                    # # want to make one-to-one mapping between hostile TrackId and neural net idx
+                    # if target.TrackId not in self.threatTrackId_to_NNidx:
+                        # self.threatTrackId_to_NNidx[target.TrackId] = self.ttId_to_NNidx_counter
+                        # self.ttId_to_NNidx_counter += 1
 
-                # construct ship action
-                ship_action: ShipActionPb = ShipActionPb()
-                ship_action.TargetId = assignedTarget
-                # ship_action.TargetId = targets[assignedTarget].TrackId
-                ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
-                ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
-                
-                return [ship_action]
+                    try:
+                        target_threatId = int(track.ThreatId.split("_")[-1])
+                    # i.e. ValueError happens with the MIN_RAID Planner simulation case where
+                    # track.ThreatId = "ENEMY MISSILE"
+                    except ValueError:
+                        assert track.ThreatId == "ENEMY MISSILE"
+                        target_threatId = 0
+
+                    self.threatId_to_trackId[target_threatId] = track.TrackId
+
+                    input_vector[30 + 6 * target_threatId: 30 + 6 * (1 + target_threatId)] = [track.PositionX, track.PositionY, track.PositionZ, 
+                                                                                    track.VelocityX, track.VelocityY, track.VelocityZ]
+                    # target_idx += 1
+                    # targets.append(target)
             
-        else: # random
-            return [self.generate_random_action(msg)]
+            input_vector = torch.Tensor(input_vector).to(self.device)
+            if sample > eps_threshold: # pick the best reward
+                with torch.no_grad():
+
+                    output = self.policy_net(input_vector)
+                    # map output to OutputPb
+                    final_output = []
+                    locations = torch.nonzero(output > THRESHOLD) # find all values that are larger than our specified threshold
+
+                    ship_weaponType_blacklist = set()
+
+                    for loc in locations:
+                        # convert Tensor of one value to the integer it contains
+                        loc = int(loc)
+                        assignedWeaponType = (loc // 10) % 2
+                        # mod 60 because 2 weapon types/enemy * 30 enemies; there are 60 total actions per ship
+                        # and we are stacking all the ships' actions sequentially
+                        # div 2 because node 0 and 1 are 1st target, node 2 and 3 are 2nd target, etc.
+                        assignedTarget = loc % 30
+                        # read explanation above, mod 60 gets us to specific index of a target, and
+                        # div 60 gets us to identify the ship
+                        assignedShip = loc // 5
+
+                        # mask output of NeuralNet to filter out impossible outputs
+                        # if assignedTarget >= len(targets) or assignedShip > len(msg.assets):
+                        if assignedTarget not in self.threatId_to_trackId or \
+                            assignedShip not in self.assetName_to_NNidx.values():
+                            continue
+
+                        # dont consider this action if testing or the target is already in the blacklist
+                        # if not self.training and targets[assignedTarget].TrackId in self.blacklist:
+                        if not self.training or assignedTarget in self.blacklist:
+                            continue
+
+                        # construct ship action
+                        ship_action: ShipActionPb = ShipActionPb()
+
+                        # if assignedTarget in self.threatTrackId_to_NNidx and assignedShip in self.assetName_to_NNidx.values():
+                        ship_action.TargetId = self.threatId_to_trackId[assignedTarget]
+                        # ship_action.TargetId = targets[assignedTarget].TrackId
+                        # ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
+
+                        nnIdx_to_assetName = {v:k for k, v in self.assetName_to_NNidx.items()}
+                        # reject if asset is dead
+                        if assignedShip not in nnIdx_to_assetName:
+                            continue 
+                        # at this point, we know that the asset does exist
+                        ship_action.AssetName = nnIdx_to_assetName[assignedShip]
+
+                        ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
+
+                        selectedShip_weaponType_to_info = {}
+                        for asset in msg.assets:
+                            if asset.AssetName == ship_action.AssetName:
+                                for weapon in asset.weapons:
+                                    selectedShip_weaponType_to_info[weapon.SystemName] = [weapon.WeaponState, weapon.Quantity]
+
+                        # selectedShip_weaponType_to_info = {weapon.SystemName:[weapon.WeaponState, weapon.Quantity] for \
+                        #                                     weapon in msg.assets[assignedShip+1].weapons}
+                        
+                        # reject if weapon state is not ready or is out of ammo:
+                        if ship_action.weapon not in selectedShip_weaponType_to_info or \
+                            f"{ship_action.AssetName}_{ship_action.weapon}" in ship_weaponType_blacklist:
+                            continue 
+                        else:
+                            weapon_info = selectedShip_weaponType_to_info[ship_action.weapon]
+                            if weapon_info[0] != "Ready" or weapon_info[1] == 0:
+                                continue
+                    
+                        # add action to datasets
+                        final_output.append(ship_action)
+                        # self.blacklist.add(targets[assignedTarget].TrackId)
+                        self.blacklist.add(assignedTarget)
+
+                    if len(final_output) > 0:
+                        print(f"Number of actions taken: {len(final_output)}")
+                        print(final_output)
+                    return final_output, locations, input_vector
+            else: # random
+                return *self.generate_random_action(msg), input_vector
+        return [], torch.Tensor([]).to(self.device), None
 
     def generate_random_action(self, msg: StatePb):
         """
@@ -204,7 +346,15 @@ class AiManager:
         ship_action: ShipActionPb = ShipActionPb()
 
         # random target selection
-        ship_action.TargetId = random.choice(msg.Tracks).TrackId             
+        track_choice = random.choice(msg.Tracks)
+        while track_choice.ThreatRelationship != "Hostile":
+            track_choice = random.choice(msg.Tracks)
+        ship_action.TargetId = track_choice.TrackId
+
+        if ship_action.TargetId in self.blacklist:
+            return [], torch.Tensor([]).to(self.device)
+        else:
+            self.blacklist.add(ship_action.TargetId)             
 
         # random asset to launch weapon from
         rand_asset = random.choice(msg.assets)
@@ -225,16 +375,29 @@ class AiManager:
             rand_weapon = random.choice(rand_asset.weapons)
 
         ship_action.weapon = rand_weapon.SystemName
-        return ship_action
 
-    def rl_update(self):
+        try:
+            target_threatId = int(track_choice.ThreatId.split("_")[-1])
+        # i.e. ValueError happens with the MIN_RAID Planner simulation case where
+        # track.ThreatId = "ENEMY MISSILE"
+        except ValueError:
+            assert track_choice.ThreatId == "ENEMY MISSILE"
+            target_threatId = 0
+        
+        reversed_NN_idx = 60 * self.assetName_to_NNidx[rand_asset.AssetName] + WEAPON_TO_IDX[ship_action.weapon] * 30 + target_threatId
+
+        return [ship_action], torch.Tensor([reversed_NN_idx]).to(self.device)
+
+    def rl_update(self, score_change):
         """
         Run this function when the score gets updated (we get feedback)
-        TODO — this entire function is sus....
         """
+        # backfill reward values over a sample
 
-        # fetch memory values since last score update TODO — nail down format for this batch object
-        batch = self.memory.sample()
+        sample = self.memory.sample()
+        transitions = []
+        for trans in sample:
+            transitions.append(Transition(*trans))
 
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
@@ -254,7 +417,7 @@ class AiManager:
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
         # for each batch state according to policy_net
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        state_action_values = self.policy_net(state_batch).gather(dim=1, index=action_batch)
 
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for non_final_next_states are computed based

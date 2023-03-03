@@ -40,7 +40,7 @@ class Environment:
         - Therefore, 5 ships * 8 attributes/ship + 30 missiles * 6 attributes/missile = 220 total attributes
         - Less than five ships or 30 missiles means we'll zero out the corresponding input nodes 
     """
-    N_OBSERVATIONS = 430
+    N_OBSERVATIONS = 210
     def __init__():
         pass
 
