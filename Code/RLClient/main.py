@@ -8,7 +8,7 @@ from subscriber import Subscriber
 from AiManager import AiManager
 
 if __name__ == '__main__':
-    print("Initializing AI client\nGREEDY")
+    print("Initializing AI client\nREINFORCEMENT LEARNING")
     
     #Initialize Publisher
     publisher = Publisher()
