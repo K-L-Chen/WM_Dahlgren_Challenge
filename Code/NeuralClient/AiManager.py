@@ -262,6 +262,10 @@ class AiManager:
         final_output = []
         locations = torch.nonzero(output > THRESHOLD) # find all values that are larger than our specified threshold
 
+        # to prevent a weapon type of one ship to be used more than one time
+        # since reloading time is required
+        ship_weaponType_blacklist = set()
+
         for loc in locations:
             # convert Tensor of one value to the integer it contains
             loc = int(loc)
@@ -311,15 +315,17 @@ class AiManager:
             # selectedShip_weaponType_to_info = {weapon.SystemName:[weapon.WeaponState, weapon.Quantity] for \
             #                                     weapon in msg.assets[assignedShip+1].weapons}
             
-            # reject if weapon state is not ready or is out of ammo:
-            if ship_action.weapon not in selectedShip_weaponType_to_info:
+            # reject if weapon state is not ready/out of ammo/is currently reloading
+            if ship_action.weapon not in selectedShip_weaponType_to_info or \
+                f"{ship_action.AssetName}_{ship_action.weapon}" in ship_weaponType_blacklist:
                 continue 
             else:
-                weapon_info = weapon_info[ship_action.weapon]
+                weapon_info = selectedShip_weaponType_to_info[ship_action.weapon]
                 if weapon_info[0] != "Ready" or weapon_info[1] == 0:
                     continue
         
             # add action to datasets
+            ship_weaponType_blacklist.add(f"{ship_action.AssetName}_{ship_action.weapon}")
             final_output.append(ship_action)
             # self.blacklist.add(targets[assignedTarget].TrackId)
             self.blacklist.add(assignedTarget)
