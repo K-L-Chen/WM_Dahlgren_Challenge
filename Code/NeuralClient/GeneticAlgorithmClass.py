@@ -88,10 +88,6 @@ class GeneticAlgorithm:
             and id(dict_params_c1) != id(dict_params_c3) \
             and id(dict_params_c2) != id(dict_params_c3)
 
-        print(dict_params_c1.keys())
-        print(dict_params_c2.keys())
-        print(dict_params_c3.keys())
-
         for param_name, param_name_params in params_nn1:
             if param_name in dict_params_c1:
                 # average of nn1 and nn2 params
