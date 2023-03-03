@@ -79,7 +79,7 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.simple_greedy_strategy(msg))
+        output_message.actions.extend(self.low_resources_strategy(msg))
 
         return output_message
 
@@ -174,7 +174,87 @@ class AiManager:
 
         else:
             return []
+        
+
+    def low_resources_strategy(self, msg:StatePb):
+        """
+        Low resources strategy: goal is to preserve ships from dying
+
+        Only one weapon is used per timestep.
+
+        Strategy: wait for missiles to spawn, calculate number of missiles aimed at each ship, blow up
+        closest missile targeting the most-targeted ship
+
+        Parameters
+        ----------
+        msg: StatePb - received data from the planner
+
+        Returns
+        -------
+        list[ShipAction], each ShipAction indicating a weapon-target assignment
+        """
+        #How long should we wait before acting? (Step 1: Wait before spawn)
     
+        DISTANCE_THRESHOLD = 500000000
+        CLOSEST_MISSILE = 500000000
+        targets_list = []
+        #Are there any valid targets (hostile, not in blacklist)?
+        for track in msg.Tracks:
+            if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
+                targets_list.append(track)
+                m_distance = utils.distance(0,0,0,track.PositionX,track.PositionY,track.PositionZ)
+                if m_distance < CLOSEST_MISSILE:
+                    CLOSEST_MISSILE = m_distance
+
+
+        # if there are any threats and we have weapons and we are past the time threshold
+        if self.weapons_are_available(msg.assets) and targets_list and CLOSEST_MISSILE < DISTANCE_THRESHOLD:
+            
+            # generate list of our defense ships that aren't targeting and have any weapons left
+            unassigned_assets = []
+            total_assets = [] # List of all of our ships
+            for asset in msg.assets:
+                if asset.AssetName != "Galleon_REFERENCE_SHIP":
+                    total_assets.append(asset)
+                    if self.weapons_in_asset(asset):
+                        unassigned_assets.append(asset)
+
+                    
+            targeted_ships_dict = {} #Maps an asset to a list of the missiles targeting it
+            #Calculate what ships every missile is targeting
+            for enemy_missile in targets_list:
+                utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict)
+            
+            #Calculate the most targeted ship
+            most_targeted_ship = utils.find_most_targeted_ship(targeted_ships_dict)
+
+            #Find the closest missile targeting the most-targeted ship
+            missile_to_target = utils.find_closest_missile(most_targeted_ship, targeted_ships_dict[most_targeted_ship])
+
+            #Find the closest ship available to attack the closest missle targeting the most targeted ship
+            closest_ready_asset = utils.find_closest_ready_asset(missile_to_target,unassigned_assets)
+
+            # send a response back to the planner
+            
+            ship_action: ShipActionPb = ShipActionPb()
+            ship_action.TargetId = missile_to_target.TrackId    
+            ship_action.AssetName = closest_ready_asset.AssetName
+
+            self.blacklist.add(missile_to_target.TrackId)
+
+            # random weapon selection, but it may not be ready or there may not be any left
+            rand_weapon = random.choice(closest_ready_asset.weapons)
+
+            # therefore, randomly scurry around until we have an immediate weapon to launch
+            while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
+                rand_weapon = random.choice(closest_ready_asset.weapons)
+
+            ship_action.weapon = rand_weapon.SystemName
+        
+            return [ship_action]
+        else:
+            return []
+        
     
     def random_WTA_strategy(self, msg:StatePb):
         """
@@ -192,7 +272,7 @@ class AiManager:
         -------
         list[ShipAction], each ShipAction indicating a weapon-target assignment
         """
-
+        
         # if there are any enemy missiles and we have weapons
         if len(msg.Tracks) > 0 and self.weapons_are_available(msg.assets):
             # set up a data response to send later
@@ -225,7 +305,6 @@ class AiManager:
 
         else:
             return []
-        
         
     # Helper methods for determining whether any weapons are left 
     def weapons_are_available(self, assets:list[AssetPb]):
