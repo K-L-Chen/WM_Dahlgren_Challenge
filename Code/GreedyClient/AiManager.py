@@ -33,7 +33,8 @@ class AiManager:
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
-   
+
+        self.logfile = None
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg:StatePb):
@@ -53,6 +54,7 @@ class AiManager:
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
+        self.logfile = open('log{}.txt'.format(msg.sessionId), 'w')
 
         
     # This method/message is used to nofify that a scenario/run has ended
@@ -250,7 +252,9 @@ class AiManager:
                 rand_weapon = random.choice(closest_ready_asset.weapons)
 
             ship_action.weapon = rand_weapon.SystemName
-        
+            
+            self.saveStateInfoToFile(msg)
+
             return [ship_action]
         else:
             return []
@@ -352,3 +356,22 @@ class AiManager:
             print("9 " + str(track.VelocityY))
             print("10: " + str(track.VelocityZ))
         print("**********************************")
+
+
+    def saveStateInfoToFile(self, msg: StatePb):
+        self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
+
+        count: int = 1
+        for asset in msg.assets:
+            self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
+            self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
+        
+        self.logfile.write("------------------\nTRACKS:\n")
+
+        for track in msg.Tracks:
+            self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
+            self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
+            self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
+
+        
+        self.logfile.write("***************************\n\n")
