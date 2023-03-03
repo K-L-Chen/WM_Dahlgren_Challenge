@@ -213,11 +213,13 @@ class AiManager:
             # generate list of our defense ships that aren't targeting and have any weapons left
             unassigned_assets = []
             total_assets = [] # List of all of our ships
+            assets_dict = {} #Dictionary mapping asset names to the assets themselves
             for asset in msg.assets:
                 if asset.AssetName != "Galleon_REFERENCE_SHIP":
                     total_assets.append(asset)
                     if self.weapons_in_asset(asset):
                         unassigned_assets.append(asset)
+                    assets_dict[asset.AssetName] = asset
 
                     
             targeted_ships_dict = {} #Maps an asset to a list of the missiles targeting it
