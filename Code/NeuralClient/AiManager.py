@@ -65,6 +65,8 @@ class AiManager:
 
         self.training = True
 
+        self.logfile = None
+
 
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
@@ -84,6 +86,8 @@ class AiManager:
         """
         self.simulation_count += 1
         self.setAssetName_to_NNidx = True
+
+        self.logfile = open('log{}_neural.txt'.format(msg.sessionId),'w')
         pass
 
     def save_population(self, filename:str):
@@ -125,6 +129,7 @@ class AiManager:
         # self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
         # self.ttId_to_NNidx_counter = 0
 
+        self.logfile.close()
 
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
@@ -332,7 +337,11 @@ class AiManager:
 
         if len(final_output) > 0:
             print(f"Number of actions taken: {len(final_output)}")
+            self.logfile.write(f"------------------\nNumber of actions taken: {len(final_output)}")
             print(final_output)
+
+        self.saveStateInfoToFile(msg)
+        
         return final_output
     
     # Function to print state information and provide syntax examples for accessing protobuf messags
@@ -368,3 +377,21 @@ class AiManager:
             print("9 " + str(track.VelocityY))
             print("10: " + str(track.VelocityZ))
         print("**********************************")
+
+    def saveStateInfoToFile(self, msg: StatePb):
+        self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
+
+        count: int = 1
+        for asset in msg.assets:
+            self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
+            self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
+        
+        self.logfile.write("------------------\nTRACKS:\n")
+
+        for track in msg.Tracks:
+            self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
+            self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
+            self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
+
+        
+        self.logfile.write("***************************\n\n")

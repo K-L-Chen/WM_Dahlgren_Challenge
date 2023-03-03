@@ -42,19 +42,19 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         asset_y = asset.PositionY
 
         expected_y = missile_slope * (asset_x - missile_x) + missile_y
-        print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
-        print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
-        if (asset_y - expected_y)**2 < 1e5: #This threshold may not be right. Will need empirical testing.
-            if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
-                if cur_target.AssetName in target_dict:
-                    target_dict[cur_target.AssetName].remove(missile)
-                cur_target = asset
-                dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
-                if asset.AssetName in target_dict:
-                    target_dict[asset.AssetName].append(missile)
-                else:
-                    target_dict[asset.AssetName] = [missile]
-                missile_target_dict[missile.TrackId] = asset
+        # print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
+        # print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
+        if (asset_y - expected_y)**2 < 1e6: #This threshold may not be right. Will need empirical testing.
+            #if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
+            if cur_target.AssetName in target_dict.keys() and missile in target_dict[cur_target.AssetName]:
+                target_dict[cur_target.AssetName].remove(missile)
+            cur_target = asset
+            #dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
+            if asset.AssetName in target_dict.keys():
+                target_dict[asset.AssetName].append(missile)
+            else:
+                target_dict[asset.AssetName] = [missile]
+            missile_target_dict[missile.TrackId] = asset
 
             #return
     
@@ -70,7 +70,7 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
 def find_most_targeted_ship(target_dict: dict[str,list[_TRACKPB]]):
     max_targeting_missiles = 0
     most_targeted_ship = None
-    for assetName in target_dict:
+    for assetName in target_dict.keys():
         if len(target_dict[assetName]) > max_targeting_missiles:
             max_targeting_missiles = len(target_dict[assetName])
             most_targeted_ship = assetName
@@ -83,7 +83,7 @@ def find_most_targeted_ship(target_dict: dict[str,list[_TRACKPB]]):
 #Returns: the expected value of destroying this missile; want to use distance as a tiebreaker 
 def expected_value(missile : _TRACKPB, target_dict, missile_target_dict):
     target = missile_target_dict[missile.TrackId] #What ship is being targeted
-    m_with_same_t = len(target_dict[target.assetName]) #How many missiles are targeting this target
+    m_with_same_t = len(target_dict[target.AssetName]) #How many missiles are targeting this target
     distance_between_missile_and_target = distance_between_missile_and_ship(missile,target)
     if target.isHVU and m_with_same_t >= 4:
         return 9000 + 10 / distance_between_missile_and_target
