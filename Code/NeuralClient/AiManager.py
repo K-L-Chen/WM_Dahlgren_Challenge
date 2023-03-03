@@ -93,7 +93,7 @@ class AiManager:
     # to help the neural network preserve its ordering on
     # which ship is which
     def populate_assetName_to_NNidx(self, assets: list[AssetPb]):
-        self.assetName_to_NNidx = {asset.AssetName: i for i, asset in enumerate(assets) if 'HVU' not in asset.AssetName}
+        self.assetName_to_NNidx = {asset.AssetName: i for i, asset in enumerate(assets) if 'REFERENCE' not in asset.AssetName}
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
