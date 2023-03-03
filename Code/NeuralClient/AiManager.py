@@ -10,8 +10,8 @@ from publisher import Publisher
 import numpy as np
 from numpy import ndarray
 import torch
-
-import random
+from collections import OrderedDict
+# import random
 
 from GeneticAlgorithmClass import GeneticAlgorithm
 
@@ -47,7 +47,17 @@ class AiManager:
 
         # initialize GeneticAlgorithm
         self.GA = GeneticAlgorithm()
-        self.currentNN = 0 # index of position in list of NeuralNets in GeneticAlgorithm 
+        self.currentNN = 0 # index of position in list of NeuralNets in GeneticAlgorithm
+
+        # helper mapper for input of neural net in order for it to know
+        # which ship is which in its input nodes;
+        # by default, you may not be able to get the 
+        # same ordering of assets each time you loop in msg.assets
+        self.assetName_to_NNidx: dict[str, int] = {}
+        self.setAssetName_to_NNidx = True 
+
+        # serves same purpose as above but for threats
+        self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
 
         self.training = True
 
@@ -68,7 +78,8 @@ class AiManager:
         """
         Each scenario should have its own GeneticAlgorithm. 
         """
-
+        self.simulation_count += 1
+        self.setAssetName_to_NNidx = True
         pass
 
     def save_population(self, filename:str):
@@ -77,6 +88,12 @@ class AiManager:
     
     def load_population(self, filename):
         self.GA.set_population(filename)
+    
+    # ran at the first timestep for the entire simulation
+    # to help the neural network preserve its ordering on
+    # which ship is which
+    def populate_assetName_to_NNidx(self, assets: list[AssetPb]):
+        self.assetName_to_NNidx = {asset.AssetName: i for i, asset in enumerate(assets)}
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
@@ -88,8 +105,12 @@ class AiManager:
             print("Generations Passed: " + str(self.generations_passed))
             self.currentNN = 0
         self.blacklist = set()
-        self.GA.POPULATION[self.currentNN].setFitness(self.GA.POPULATION[self.currentNN].getFitness() + msg.score)
+        self.GA.population[self.currentNN].setFitness(self.GA.population[self.currentNN].getFitness() + msg.score)
         self.currentNN += 1
+
+        self.assetName_to_NNidx: dict[str, int] = {}
+        self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
+
 
         print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
@@ -106,6 +127,9 @@ class AiManager:
         -------
         output_message: OutputPb with actions: list[ShipAction] - list of A.I. actions from asset(s)
         """
+        if self.setAssetName_to_NNidx:
+            self.populate_assetName_to_NNidx(msg.assets)
+            self.setAssetName_to_NNidx = False
 
         output_message: OutputPb = OutputPb()
 
@@ -150,22 +174,43 @@ class AiManager:
 
         # assemble input vector and indexed targets object
         input_vector = np.zeros(210)
-        dship_idx = 0
+        # dship_idx = 0
+
+        ship_weaponType_to_ammo = OrderedDict()
+
+        for weapon_system_name in WEAPON_TYPES:
+            ship_weaponType_to_ammo[weapon_system_name] = 0
+
         for defense_ship in msg.assets:
-            input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, defense_ship.weapons[0].Quantity, defense_ship.weapons[1].Quantity, 
+            # get the ammo for this specific ship
+            for weapon in defense_ship.weapons:
+                ship_weaponType_to_ammo[weapon.SystemName] += 1
+            
+            # helps preserve order of ship nodes in input of neural net
+            dship_idx = self.assetName_to_NNidx[defense_ship.AssetName]
+            
+            input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
                                                                defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
-            dship_idx += 1
+            # clear out to properly count for the next ship
+            for weapon_sys_name in ship_weaponType_to_ammo:
+                ship_weaponType_to_ammo[weapon_sys_name] = 0
+            # dship_idx += 1
         
-        targets = []
-        target_idx = 0
-        for target in msg.Tracks:
+        # targets = []
+        # target_idx = 0
+        for i, target in enumerate(msg.Tracks):
             if target.ThreatRelationship == "Hostile" and target.TrackId not in self.blacklist:
+                # want to make one-to-one mapping between hostile TrackId and neural net idx
+                if target.TrackId not in self.threatTrackId_to_NNidx:
+                    self.threatTrackId_to_NNidx[target.TrackId] = i
+
+                target_idx = self.threatTrackId_to_NNidx[target.TrackId]
                 input_vector[30 + 6 * target_idx: 30 + 6 * (1 + target_idx)] = [target.PositionX, target.PositionY, target.PositionZ, 
                                                                                 target.VelocityX, target.VelocityY, target.VelocityZ]
-                target_idx += 1
-                targets.append(target)
+                # target_idx += 1
+                # targets.append(target)
         
-        output = self.GA.POPULATION[self.currentNN].forward(input_vector)
+        output = self.GA.population[self.currentNN].forward(torch.Tensor(input_vector))
         
         #Our output layer has 300 nodes
                 # - 5 ships * 30 targets * 2 weapon types = 300
@@ -173,9 +218,11 @@ class AiManager:
         
         # map output to OutputPb
         final_output = []
-        locations = torch.where(output > THRESHOLD) # find all values that are larger than our specified threshold
+        locations = torch.nonzero(output > THRESHOLD) # find all values that are larger than our specified threshold
 
         for loc in locations:
+            # convert Tensor of one value to the integer it contains
+            loc = int(loc)
             assignedWeaponType = loc % 2
             # mod 60 because 2 weapon types/enemy * 30 enemies; there are 60 total actions per ship
             # and we are stacking all the ships' actions sequentially
@@ -186,23 +233,29 @@ class AiManager:
             assignedShip = loc // 60
 
             # mask output of NeuralNet to filter out impossible outputs
-            if assignedTarget >= len(targets) or assignedShip > len(msg.assets):
+            # if assignedTarget >= len(targets) or assignedShip > len(msg.assets):
+            if assignedTarget not in self.threatTrackId_to_NNidx or \
+                assignedShip not in self.assetName_to_NNidx:
+                # TODO this
                 pass
 
-            # dont consider this action if testing and the target is already in the blacklist
-            if not self.training and targets[assignedTarget].TrackId in self.blacklist:
+            # dont consider this action if testing or the target is already in the blacklist
+            # if not self.training and targets[assignedTarget].TrackId in self.blacklist:
+            if not self.training or assignedTarget in self.blacklist:
                 pass
 
             # construct ship action
             ship_action: ShipActionPb = ShipActionPb()
-            ship_action.TargetId = assignedTarget
-            # ship_action.TargetId = targets[assignedTarget].TrackId
-            ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
-            ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
+            if assignedTarget in self.threatTrackId_to_NNidx:
+                ship_action.TargetId = assignedTarget
+                # ship_action.TargetId = targets[assignedTarget].TrackId
+                ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
+                ship_action.weapon = WEAPON_TYPES[assignedWeaponType]
             
-            # add action to datasets
-            final_output.append(ship_action)
-            self.blacklist.add(targets[assignedTarget].TrackId)
+                # add action to datasets
+                final_output.append(ship_action)
+                # self.blacklist.add(targets[assignedTarget].TrackId)
+                self.blacklist.add(assignedTarget)
     
         return final_output
     
