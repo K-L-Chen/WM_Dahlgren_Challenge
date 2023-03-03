@@ -211,10 +211,12 @@ class AiManager:
             if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
                 targets_list.append(track)
                 missile_dict[track.TrackId] = track
+        print("Hostile, nonblacklisted missiles: " + str(len(missile_dict)))
+        print("Total missiles (including exploded ones): " + str(len(missile_dict) +len(self.blacklist)))
 
 
         # if there are any threats and we have weapons and we are past the time threshold
-        if self.weapons_are_available(msg.assets) and targets_list:
+        if self.weapons_are_available(msg.assets) and targets_list and msg.time > 25:
             
             # generate list of our defense ships that aren't targeting and have any weapons left
             unassigned_assets = []
@@ -236,14 +238,16 @@ class AiManager:
                 utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict, missile_target_dict)
             
             expected_value_dict = {} # Maps missile name to expected value
-            print(missile_target_dict)
+            #print(missile_target_dict)
             for missileName in missile_dict.keys():
                 closest_ready_asset = utils.find_closest_ready_asset(missile_dict[missileName],unassigned_assets)
                 for weapon in closest_ready_asset.weapons: 
                     if weapon.WeaponState == "Ready":
-                        print(missileName,missile_target_dict.keys())
-                        if utils.time_between_ships(closest_ready_asset, missile_target_dict[missileName], weapon) < utils.time_between_missile_and_ship(missile_dict[missileName], missile_target_dict[missileName]):
-                            expected_value_dict[missileName] = utils.expected_value(missile_dict[missileName], targeted_ships_dict, missile_target_dict)
+                        #print(missileName,missile_target_dict.keys())
+                        if utils.time_between_ships(closest_ready_asset, missile_target_dict[missileName], weapon)\
+                              < utils.time_between_missile_and_ship(missile_dict[missileName], missile_target_dict[missileName]):
+                            expected_value_dict[missileName] = \
+                                utils.expected_value(missile_dict[missileName], targeted_ships_dict, missile_target_dict)
                     
             #find the missile with the highest expected value
             max_missile_id = max(expected_value_dict, key = expected_value_dict.get)

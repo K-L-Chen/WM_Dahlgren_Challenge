@@ -36,27 +36,43 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
     missile_slope = missile_y_vel / missile_x_vel
     
     dist_btwn_missile_target = distance_between_missile_and_ship(missile, asset_list[0])
-    cur_target = asset_list[0]
+    closest_asset = asset_list[0]
+    assigned = False
+    trajectory_list = []
     for asset in asset_list:
         asset_x = asset.PositionX
         asset_y = asset.PositionY
 
         expected_y = missile_slope * (asset_x - missile_x) + missile_y
-        # print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
-        # print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
+        #print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
+        #print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
+        
         if (asset_y - expected_y)**2 < 1e6: #This threshold may not be right. Will need empirical testing.
-            #if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
-            if cur_target.AssetName in target_dict.keys() and missile in target_dict[cur_target.AssetName]:
-                target_dict[cur_target.AssetName].remove(missile)
-            cur_target = asset
+            trajectory_list.append(asset)
+            if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
+            # if closest_asset.AssetName in target_dict.keys() and missile in target_dict[closest_asset.AssetName]:
+            #     target_dict[cur_target.AssetName].remove(missile)
+                closest_asset = asset
             #dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
             if asset.AssetName in target_dict.keys():
                 target_dict[asset.AssetName].append(missile)
             else:
                 target_dict[asset.AssetName] = [missile]
             missile_target_dict[missile.TrackId] = asset
-
+            assigned = True
+            print("Target ship found")
+    if not assigned:
+        print("Targeted ship not found")
+        missile_target_dict[missile.TrackId] = closest_asset
+        if closest_asset.AssetName in target_dict.keys():
+            target_dict[closest_asset.AssetName].append(missile)
+        else:
+            target_dict[closest_asset.AssetName] = [missile]
+        missile_target_dict[missile.TrackId] = closest_asset
             #return
+
+    for asset in trajectory_list:
+        dist_to_asset = distanc
     
     # print("No target found. Choosing randomly.")
     # asset = choice(asset_list)
@@ -85,11 +101,11 @@ def expected_value(missile : _TRACKPB, target_dict, missile_target_dict):
     target = missile_target_dict[missile.TrackId] #What ship is being targeted
     m_with_same_t = len(target_dict[target.AssetName]) #How many missiles are targeting this target
     distance_between_missile_and_target = distance_between_missile_and_ship(missile,target)
-    if target.isHVU and m_with_same_t >= 4:
+    if target.isHVU and m_with_same_t >= target.health:
         return 9000 + 10 / distance_between_missile_and_target
     elif target.isHVU:
         return 2000 + 10 / distance_between_missile_and_target
-    elif m_with_same_t >= 4:
+    elif m_with_same_t >= target.health:
         return 5000 + 10 / distance_between_missile_and_target
     else:
         return 1000 + 10 / distance_between_missile_and_target
