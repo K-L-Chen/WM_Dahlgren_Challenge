@@ -182,20 +182,21 @@ class AiManager:
             ship_weaponType_to_ammo[weapon_system_name] = 0
 
         for defense_ship in msg.assets:
-            # get the ammo for this specific ship
-            for weapon in defense_ship.weapons:
-                ship_weaponType_to_ammo[weapon.SystemName] += 1
+            if 'REFERENCE' not in defense_ship.AssetName:
+                # get the ammo for this specific ship
+                for weapon in defense_ship.weapons:
+                    ship_weaponType_to_ammo[weapon.SystemName] += 1
+                
+                # helps preserve order of ship nodes in input of neural net
+                dship_idx = self.assetName_to_NNidx[defense_ship.AssetName]
+                
+                input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
+                                                                defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
+                # clear out to properly count for the next ship
+                for weapon_sys_name in ship_weaponType_to_ammo:
+                    ship_weaponType_to_ammo[weapon_sys_name] = 0
+                # dship_idx += 1
             
-            # helps preserve order of ship nodes in input of neural net
-            dship_idx = self.assetName_to_NNidx[defense_ship.AssetName]
-            
-            input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
-                                                               defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
-            # clear out to properly count for the next ship
-            for weapon_sys_name in ship_weaponType_to_ammo:
-                ship_weaponType_to_ammo[weapon_sys_name] = 0
-            # dship_idx += 1
-        
         # targets = []
         # target_idx = 0
         for i, target in enumerate(msg.Tracks):

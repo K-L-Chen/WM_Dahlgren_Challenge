@@ -11,10 +11,10 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import math  
-import np
+import numpy as np
 
-import DQN
-import Memory
+from DQN import DQN
+from Memory import Memory
 import Environment
 from Environment import Environment
 
@@ -135,8 +135,8 @@ class AiManager:
         global steps_done
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
-            math.exp(-1. * steps_done / EPS_DECAY) # calculate epsilon threshold
-        steps_done += 1 # update steps done
+            math.exp(-1. * self.steps_done / EPS_DECAY) # calculate epsilon threshold
+        self.steps_done += 1 # update steps done
 
         if sample > eps_threshold: # pick the best reward
             with torch.no_grad():
@@ -190,33 +190,42 @@ class AiManager:
                 return [ship_action]
             
         else: # random
-            # set up a data response to send later
-            ship_action: ShipActionPb = ShipActionPb()
+            return [self.generate_random_action(msg)]
 
-            # random target selection
-            ship_action.TargetId = random.choice(msg.Tracks).TrackId             
+    def generate_random_action(self, msg: StatePb):
+        """
+        Given a StatePb, generates a random ShipActionPb
 
-            # random asset to launch weapon from
+        @param msg: The StatePb argument
+
+        @return ship_action: A randomly generated, valid ShipActionPb object to be executed. 
+        """
+        # set up a data response to send later
+        ship_action: ShipActionPb = ShipActionPb()
+
+        # random target selection
+        ship_action.TargetId = random.choice(msg.Tracks).TrackId             
+
+        # random asset to launch weapon from
+        rand_asset = random.choice(msg.assets)
+
+        # reference ship does not count; it has no weapons anyway
+        # our ship must also have at least one weapon available
+        while rand_asset.AssetName == "Galleon_REFERENCE_SHIP" or \
+            not self.weapons_in_asset(rand_asset):
             rand_asset = random.choice(msg.assets)
 
-            # reference ship does not count; it has no weapons anyway
-            # our ship must also have at least one weapon available
-            while rand_asset.AssetName == "Galleon_REFERENCE_SHIP" or \
-                not self.weapons_in_asset(rand_asset):
-                rand_asset = random.choice(msg.assets)
+        ship_action.AssetName = rand_asset.AssetName
 
-            ship_action.AssetName = rand_asset.AssetName
+        # random weapon selection
+        rand_weapon = random.choice(rand_asset.weapons)
 
-            # random weapon selection
+        # randomly scurry around until we have an immediate weapon to launch
+        while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
             rand_weapon = random.choice(rand_asset.weapons)
 
-            # randomly scurry around until we have an immediate weapon to launch
-            while rand_weapon.Quantity == 0 or rand_weapon.WeaponState != "Ready":
-                rand_weapon = random.choice(rand_asset.weapons)
-
-            ship_action.weapon = rand_weapon.SystemName
-        
-            return [ship_action]
+        ship_action.weapon = rand_weapon.SystemName
+        return ship_action
 
     def rl_update(self):
         """
@@ -230,7 +239,7 @@ class AiManager:
         # Transpose the batch (see https://stackoverflow.com/a/19343/3343043 for
         # detailed explanation). This converts batch-array of Transitions
         # to Transition of batch-arrays.
-        # batch = Transition(*zip(*transitions))
+        batch = Transition(*zip(*transitions))
 
         # Compute a mask of non-final states and concatenate the batch elements
         # (a final state would've been the one after which simulation ended)

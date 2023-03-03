@@ -109,6 +109,7 @@ class AiManager:
         
         # assign a danger level for each incoming threat and have the threats sorted from most to least dangerous
         # Danger level is based on the summed distance to all of our assets
+        print(msg.Tracks)
         for track in msg.Tracks:
             if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
                 # calculate danger value for current track
