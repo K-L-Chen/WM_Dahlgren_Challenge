@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 class NeuralNet(nn.Module):
 
-    def __init__(self, input_size, hidden_size1, hidden_size2, output_size):
+    def __init__(self, input_size=210, hidden_size1=128, hidden_size2=256, output_size=300):
         """
         Constructor
 
