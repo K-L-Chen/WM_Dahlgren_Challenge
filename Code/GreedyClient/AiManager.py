@@ -62,6 +62,7 @@ class AiManager:
         self.blacklist = set()
         if msg.score != 10000:
             print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+        self.logfile.close()
 
 
     def createActions(self, msg:StatePb):
@@ -81,6 +82,8 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
+
+        #force it to use one or the other
         switch = True
         if switch:
             output_message.actions.extend(self.low_resources_strategy(msg))
@@ -201,20 +204,20 @@ class AiManager:
         """
         #How long should we wait before acting? (Step 1: Wait before spawn)
     
-        DISTANCE_THRESHOLD = 500000000
-        CLOSEST_MISSILE = 500000000
         targets_list = []
+        missile_dict = {}
         #Are there any valid targets (hostile, not in blacklist)?
         for track in msg.Tracks:
             if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
                 targets_list.append(track)
+                missile_dict[track.TrackId] = track
                 m_distance = utils.distance(0,0,0,track.PositionX,track.PositionY,track.PositionZ)
                 if m_distance < CLOSEST_MISSILE:
                     CLOSEST_MISSILE = m_distance
 
 
         # if there are any threats and we have weapons and we are past the time threshold
-        if self.weapons_are_available(msg.assets) and targets_list and CLOSEST_MISSILE < DISTANCE_THRESHOLD:
+        if self.weapons_are_available(msg.assets) and targets_list:
             
             # generate list of our defense ships that aren't targeting and have any weapons left
             unassigned_assets = []
@@ -229,19 +232,24 @@ class AiManager:
 
                     
             targeted_ships_dict = {} #Maps an asset to a list of the missiles targeting it
+            missile_target_dict = {} #Maps a missile name to the ship it's attacking
+
             #Calculate what ships every missile is targeting
             for enemy_missile in targets_list:
-                utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict)
+                utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict, missile_target_dict)
             
+
+            for 
             #Calculate the most targeted ship
             most_targeted_ship = utils.find_most_targeted_ship(targeted_ships_dict)
 
             #Find the closest missile targeting the most-targeted ship
             missile_to_target = utils.find_closest_missile(assets_dict[most_targeted_ship], targeted_ships_dict[most_targeted_ship])
 
-            #Find the closest ship available to attack the closest missle targeting the most targeted ship
+            #Find the closest ship available to attack the closest missile targeting the most targeted ship
             closest_ready_asset = utils.find_closest_ready_asset(missile_to_target,unassigned_assets)
 
+            
             # send a response back to the planner
             
             ship_action: ShipActionPb = ShipActionPb()

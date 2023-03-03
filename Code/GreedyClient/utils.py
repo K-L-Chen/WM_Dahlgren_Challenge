@@ -1,18 +1,42 @@
-from PlannerProto_pb2 import _TRACKPB, _ASSETPB
+from PlannerProto_pb2 import _TRACKPB, _ASSETPB, _WEAPONPB
 from random import choice
 
 def distance(x1, y1, z1, x2, y2, z2):
     return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2)
 
+
+#returns the DISTANCE between a given missile and a given ship
+def distance_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
+    return distance(missile.PositionX, missile.PositionY, 0, ship.PositionX, ship.PositionY, 0) ** (1/2)
+
+#returns the time it takes for a weapon from one ship to reach another
+def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon_type : _WEAPONPB):
+    distance_between_ships = distance(defending_ship.PositionX,defending_ship.PositionY,defending_ship.PositionZ, 
+                                      target_ship.PositionX, target_ship.PositionY, target_ship.PositionZ) ** (1/2)
+    if weapon_type.SystemName == "Chainshot":
+        weapon_speed = 1234
+    else:
+        weapon_speed = 3500
+    return distance_between_ships / weapon_speed
+
+
+#returns the time between a missile and its target
+def time_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
+    missile_velocity = (missile.VelocityX ** 2 + missile.VelocityY ** 2 + missile.VelocityZ ** 2) ** (1/2)
+    return distance_between_missile_and_ship(missile,ship) / missile_velocity
+
 #Arguments: missile and list of assets
 #Adds a new entry to the target_dict mapping the asset to a list of the missiles targeting it
-def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], target_dict):
+#Another argument - missile_target_dict of missileName : target
+def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], target_dict, missile_target_dict):
     missile_x = missile.PositionX
     missile_y = missile.PositionY
     missile_x_vel = missile.VelocityX
     missile_y_vel = missile.VelocityY
     missile_slope = missile_y_vel / missile_x_vel
     
+    dist_btwn_missile_target = distance_between_missile_and_ship(missile, asset_list[0])
+    cur_target = asset_list[0]
     for asset in asset_list:
         asset_x = asset.PositionX
         asset_y = asset.PositionY
@@ -21,19 +45,25 @@ def calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], ta
         print("Asset X: {}\tAsset Y: {}\n Expected Y: {}\n".format(asset_x,asset_y,expected_y))
         print("Asset Y - Expected Y Squared: {}".format(str((asset_y - expected_y)**2)))
         if (asset_y - expected_y)**2 < 1e5: #This threshold may not be right. Will need empirical testing.
-            if asset.AssetName in target_dict:
-                target_dict[asset.AssetName].append(missile)
-            else:
-                target_dict[asset.AssetName] = [missile]
+            if distance_between_missile_and_ship(missile,asset) <= dist_btwn_missile_target:
+                if cur_target.AssetName in target_dict:
+                    target_dict[cur_target.AssetName].remove(missile)
+                cur_target = asset
+                dist_btwn_missile_target = distance_between_missile_and_ship(missile,asset)
+                if asset.AssetName in target_dict:
+                    target_dict[asset.AssetName].append(missile)
+                else:
+                    target_dict[asset.AssetName] = [missile]
+                missile_target_dict[missile.TrackId] = asset
 
-            return
+            #return
     
-    print("No target found. Choosing randomly.")
-    asset = choice(asset_list)
-    if asset.AssetName in target_dict:
-        target_dict[asset.AssetName].append(missile)
-    else:
-        target_dict[asset.AssetName] = [missile]
+    # print("No target found. Choosing randomly.")
+    # asset = choice(asset_list)
+    # if asset.AssetName in target_dict:
+    #     target_dict[asset.AssetName].append(missile)
+    # else:
+    #     target_dict[asset.AssetName] = [missile]
 
 #Argument: a dictionary mapping each asset to a list of missiles targeting it
 #Returns the NAME of the most-targeted ship
@@ -47,6 +77,23 @@ def find_most_targeted_ship(target_dict: dict[str,list[_TRACKPB]]):
     
     #most_targeted_ship = max(target_dict, key=len(target_dict.get()))
     return most_targeted_ship
+
+#Arguments: a missile, the dictionary mapping ships to missiles targeting them
+#The dictionary mapping missiles to their targets
+#Returns: the expected value of destroying this missile; want to use distance as a tiebreaker 
+def expected_value(missile : _TRACKPB, target_dict, missile_target_dict):
+    target = missile_target_dict[missile.TrackId] #What ship is being targeted
+    m_with_same_t = len(target_dict[target.assetName]) #How many missiles are targeting this target
+    distance_between_missile_and_target = distance_between_missile_and_ship(missile,target)
+    if target.isHVU and m_with_same_t >= 4:
+        return 9000 + 10 / distance_between_missile_and_target
+    elif target.isHVU:
+        return 2000 + 10 / distance_between_missile_and_target
+    elif m_with_same_t >= 4:
+        return 5000 + 10 / distance_between_missile_and_target
+    else:
+        return 1000 + 10 / distance_between_missile_and_target
+
 
 #Arguments: the most targeted ship and the list of missiles targeting it
 #Returns the closest missile to that ship
