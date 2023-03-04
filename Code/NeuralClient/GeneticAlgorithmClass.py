@@ -9,9 +9,9 @@ import operator
 
 #POPULATION_SAVE_DIR  "POPULATION_SIZE - CLONES must be divisible by 3!
 # POPULATION_SIZE = 100 # Number of neural nets in each generation
-POPULATION_SIZE = 50
+POPULATION_SIZE = 100
 # POPULATION_SIZE = 10
-CLONES = 8 # Number of surviving/cloned neural nets that are the best per generation
+CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
 # CLONES = 4
 PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) // 3
 
@@ -24,8 +24,8 @@ import math
 assert math.comb(CLONES, 2) >= PAIRINGS_PER_GENERATION
 
 MAX_MUTATION_PERCENT = 1.0 # Can change a weight or a bias by up to MUTATION_SIZE of its current value
-MUTATION_RANGE = 2
-MUTATION_RATE = 3.0 # Odds that any given weight or bias will mutate
+MUTATION_RANGE = 0.4
+MUTATION_RATE = 0.3 # Odds that any given weight or bias will mutate
 # PARENT_PERCENTAGE = 0.2 # how much of the population we want to sample from for parents to breed
 SHIFT_SIZE = 0.7 # When breeding, how much should the resulting (higher = more) children be shifted to their parents
 
