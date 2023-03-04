@@ -135,9 +135,9 @@ class AiManager:
 
         TODO: slightly modified, but simpler data structures filled out
         TODO: function that estimates, something reasonably fast, how long it 
-        will take for a missile to reach a target (something Nick proposed: 2-line version)
+        will take for a missile to reach a target (something Nick proposed: 2-line version) [DONE - Nick]
         TODO: how exactly to make a decision 
-        TODO: calculate the secondary targets
+        TODO: calculate the secondary targets [DONE - Nick]
 
 
         Important variables: Time between enemy missile and ship (imperfect; straight line approx.)
@@ -151,7 +151,7 @@ class AiManager:
         #GET ID BY ITS POSITION IN INITIAL INPUT
         asset_names = [None for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
         asset_positions = [None] * 5  #len 5, bunch of tuple locations(x, y, z)
-        asset_weapon_info = [None] * 5 # bunch of tuples (name, quantity, WeaponState)
+        asset_weapon_info = [None] * 5 # each element: list of of tuples (name, quantity, WeaponState)
         # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
         # self.populate_asset_names(assets)
         self.populate_asset_info(msg, asset_names, asset_positions, asset_weapon_info)
@@ -160,7 +160,7 @@ class AiManager:
 
         # threats = [None] * 30 #unordered list of missiles, each entry is an int correstponding to the number of the missile
 
-        # threat_info = [None] * 30 #len 30
+        # threat_info = [None] * 30 # len 30
 
 
         targetIds = [None] * 30 #len 30
@@ -179,10 +179,12 @@ class AiManager:
         # used to evaluate when something needs to go to its secondary target
         # list of list of weapons that are targeting the asset for each respective index?
         #NEEDS TO BE POPULATED WITH THE MISSILES FOR EACH ASSET THAT HAVE IT AS PRIMARY TARGET (asset identified by index)
-        asset_threat_list = [None] * 5
+        # uses the `find_primary_target` methods in utils.py
+        asset_threat_list = [[] * 5]
 
 
-        ammo = None
+        ammo = utils.total_remaining_ammo(asset_weapon_info)
+        final_weapon = None: #utils.
 
 
         '''
@@ -221,11 +223,16 @@ class AiManager:
         n = 1 # depth of search
 
         curr_threats = [i in threat_filtered]
-        future_score = 0
+        best_score = -100000000
         shotsfired = 0
 
+        final_target = None
+
+        #final_targets = []
+
+        #NOTE DUE TO TIME CONSTRAINTS STARTING WITH OUTER LOOP 1: ONLY FIRE 1 SHOT
         for a in range(n): #a in range(threat_filtered) for ALL missiles considered
-            curr_score = 0
+            curr_score = -1000000000
             
             curr_target = None
 
@@ -235,8 +242,9 @@ class AiManager:
                 threat = curr_threats[i]
 
                 inner_threats = [i in curr_threats].remove[threat]
+                inner_target = None
                 
-                for i in range(ammo-shotsfired):
+                for a in range(ammo - shotsfired):
                     pass
                 
                 #NOTE: PSEUDOCODE FOR FINAL STAGE EXPECTED VALUE GREEDY
@@ -253,14 +261,38 @@ class AiManager:
 
                 for j in range(len(inner_threats)):
 
-                    weapon_score = 0 #placeholder, see comments below
+                    threat_score = 0 #placeholder, see comments below
 
                     #sort inner threats
 
                     #add damage of the first target that hits, remove it from 
 
-                    total_score + weapon_score
-                    
+                    total_score + threat_score
+
+
+                #update "current" by best innermost target
+                if total_score > curr_score:
+                    curr_target = i
+                    curr_score = total_score
+
+            #if a < n-1:
+            #    shotsfired += 1
+            #NOTE DUE TO TIME CONSTRAINTS, IGNORE THIS
+
+            final_target = curr_target
+            best_score = curr_score
+
+            ######
+            ######     find optimal weapon to hit best target with if we have time
+            ######
+
+            #TODO SEND THE FINAL PB
+
+            # WEAPON: final_weapon
+            # TARGET: final_target
+
+                
+                
             
 
                 
@@ -290,7 +322,7 @@ class AiManager:
                 
 
 
-    def populate_threat_info(msg: StatePb, target_ids, threat_trackIds, threat_poss, threat_velos):
+    def populate_threat_info(self, msg: StatePb, target_ids, threat_trackIds, threat_poss, threat_velos):
         """
         Get mappings from our programmatic threat index to its actual
         threatId and trackId through two different lists respectively
@@ -326,14 +358,36 @@ class AiManager:
         idx = 0
         filtered_list = [None] * 30
         for target in target_list:
-            time_to_target = utils.distance_between_missile_and_ship(msg.tracks[target])
+            if(target == None):
+                break
+
+            time_to_target = utils.distance_between_missile_and_ship(msg.tracks[idx])
             
             if target not in self.blacklist and cur_time_remaining > time_to_target:
                 filtered_list[idx] = target
                 idx += 1
         
         return filtered_list
+    
 
+    def populate_asset_threat_list(self, asset_poss: list[tuple[int]], threat_poss: list[tuple[int]],
+                                    at_lst: list[list]):
+        pass
+
+
+    def update_asset_threat_list(self, msg:StatePb, at_lst: list[list]):
+        '''
+        @param msg: State Pb
+        @param at_lst: asset-threat
+        '''
+        for track in msg.Tracks:
+            if track.ThreatRelationship == "Hostile":
+                asset_targeted = utils.find_primary_target(track, msg.assets)
+                
+                if asset_targeted.isHVU():
+                    at_lst[len(msg.assets) - 1].append(track.ThreatId)
+                else:
+                    at_lst[(int)(asset_targeted.AssetName[-1])].append(track.ThreatId)
         
     
     def simple_greedy_strategy(self, msg:StatePb):
