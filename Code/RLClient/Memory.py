@@ -10,7 +10,7 @@ Transition = namedtuple('Transition',
 class Memory(object):
 
     BATCH_SIZE = 25
-    DIST_QUOTIENT = 0.6
+    DIST_QUOTIENT = 3/5
     BACKFILL_LIMIT = 50
     def __init__(self, capacity):
         self.memory = deque([], maxlen=capacity)
@@ -24,7 +24,7 @@ class Memory(object):
 
     def backfill_batch(self, score_mod):
         for idx in range(len(self.memory)):
-            self.memory[idx][-1] += score_mod * (((1 - self.DIST_QUOTIENT) / len(self.memory)) * idx + self.DIST_QUOTIENT)
+            self.memory[idx][-1] += int(score_mod * (((1 - self.DIST_QUOTIENT) / len(self.memory)) * idx + self.DIST_QUOTIENT))
 
     def __len__(self):
         return len(self.memory)

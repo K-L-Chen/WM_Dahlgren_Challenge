@@ -58,6 +58,10 @@ WEAPON_TO_IDX = {
 }
 THRESHOLD = 0.65
 
+POLICY_FILE = "policy"
+TARGET_FILE = "target"
+
+FROM_FILE = True
 class AiManager:
 
     # Constructor
@@ -73,10 +77,16 @@ class AiManager:
         # Get the number of state observations (n_observations)
 
         # TODO — figure out what this means, implement it
-
-        self.policy_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
-        self.target_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
-        self.target_net.load_state_dict(self.policy_net.state_dict())
+        
+        if FROM_FILE:
+            print("Loading from File")
+            self.load(POLICY_FILE, TARGET_FILE)
+            self.target_net.load_state_dict(self.policy_net.state_dict())
+        else:
+            print("Initializing randomly")
+            self.policy_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
+            self.target_net = DQN(Environment.N_OBSERVATIONS, Environment.N_ACTIONS).to(self.device)
+            self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
         self.memory = Memory(10000) # use some arbitrary buffer size
@@ -102,7 +112,6 @@ class AiManager:
     # to help the neural network preserve its ordering on
     # which ship is which
     def populate_assetName_to_NNidx(self, assets: list[AssetPb]):
-        print("population ship to idx")
         i = 0 
         for asset in assets:
             if 'REFERENCE' not in asset.AssetName:
@@ -133,7 +142,7 @@ class AiManager:
                     self.currentTransition[2] = state_vector
                     self.memory.push(self.currentTransition)
             
-            self.currentTransition = [state_vector, action_vector, None, torch.Tensor([0]).to(self.device)]
+            self.currentTransition = [state_vector, action_vector, None, torch.tensor([0], device=self.device, dtype=torch.float32)]
 
         if self.current_score != msg.score:
             self.memory.backfill_batch(msg.score - self.current_score)
@@ -155,6 +164,7 @@ class AiManager:
         self.setAssetName_to_NNidx = True
         if msg.score != 10000:
             print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+        self.save(POLICY_FILE, TARGET_FILE)
 
 
     def createActions(self, msg:StatePb):
@@ -259,7 +269,7 @@ class AiManager:
                     # target_idx += 1
                     # targets.append(target)
             
-            input_vector = torch.Tensor(input_vector, device=self.device)
+            input_vector = torch.tensor(input_vector, device=self.device, dtype=torch.float32)
             output_vector = input_vector.unsqueeze(0)
             if sample > eps_threshold: # pick the best reward
                 with torch.no_grad():
@@ -274,7 +284,7 @@ class AiManager:
                     executedActionIdxes = []
 
                     if 300 in locations:
-                        return [], torch.Tensor([[300]], device=self.device), output_vector
+                        return [], torch.tensor([[300]], device=self.device), output_vector
 
                     for loc in locations:
                         # convert Tensor of one value to the integer it contains
@@ -347,10 +357,10 @@ class AiManager:
 
                     if len(executedActionIdxes) == 0:
                         # print("action idx empty")
-                        return final_output, torch.Tensor([[300]], device=self.device), output_vector
+                        return final_output, torch.tensor([[300]], device=self.device), output_vector
                     else:
                         # print(f"{executedActionIdxes}")
-                        return final_output, torch.Tensor(executedActionIdxes, device=self.device).unsqueeze(1), output_vector
+                        return final_output, torch.tensor(executedActionIdxes, device=self.device).unsqueeze(1), output_vector
             else: # random
                 return *self.generate_random_action(msg), output_vector
         return [], None, None
@@ -374,7 +384,7 @@ class AiManager:
 
         if ship_action.TargetId in self.blacklist:
             # print("random in blacklist")
-            return [],  torch.Tensor([[300]], device=self.device)
+            return [],  torch.tensor([[300]], device=self.device)
         else:
             self.blacklist.add(ship_action.TargetId)             
 
@@ -409,7 +419,7 @@ class AiManager:
         reversed_NN_idx = 60 * self.assetName_to_NNidx[rand_asset.AssetName] + WEAPON_TO_IDX[ship_action.weapon] * 30 + target_threatId
 
         # print(f"random {reversed_NN_idx}")
-        return [ship_action], torch.Tensor([[reversed_NN_idx]], device=self.device)
+        return [ship_action], torch.tensor([[reversed_NN_idx]], device=self.device)
 
     def rl_update(self, score_change):
         """
@@ -477,6 +487,15 @@ class AiManager:
             if weapon.Quantity > 0: return True
         return False
 
+
+    #Sets an entirely new population. Only called when loading an old population from a file.
+    def load(self, policy_file, target_file):
+        self.policy_net = torch.load(policy_file).to(self.device)
+        self.target_net = torch.load(target_file).to(self.device)
+
+    def save(self, policy_file, target_file):
+        torch.save(self.policy_net, policy_file)
+        torch.save(self.target_net, target_file)
     
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg:StatePb):
