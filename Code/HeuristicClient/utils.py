@@ -122,9 +122,14 @@ def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon
 def slowest_avaliable_ship_weapon(target, wep_info):
     shipID, wepID = None, None
     
+    best_time = 301
+
     for ship in wep_info:
-        for wep in wep_info:
-            
+        #weapon 0
+        if ship[0][1] > 0 and ship[0][2] == True:
+            pass
+        else: #weapon 1
+            pass
         
 
 #Arguments: a ship and a list of missiles targeting it
