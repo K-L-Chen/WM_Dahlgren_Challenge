@@ -5,11 +5,12 @@ from random import random
 class Environment:
     """       
     output_size:
-        Our output layer has 300 nodes
+        Our output layer has 301 nodes
             - 5 ships * 30 targets * 2 weapon types = 300
             - Each node is the probability that ship x will target enemy y with weapon type z
+            - plus a node that tells you to do nothing
     """
-    N_ACTIONS = 300
+    N_ACTIONS = 301
     """
     input_size: number of input nodes
         Our specific setup is 220 input nodes:

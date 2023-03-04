@@ -102,6 +102,7 @@ class AiManager:
     # to help the neural network preserve its ordering on
     # which ship is which
     def populate_assetName_to_NNidx(self, assets: list[AssetPb]):
+        print("population ship to idx")
         i = 0 
         for asset in assets:
             if 'REFERENCE' not in asset.AssetName:
@@ -125,8 +126,12 @@ class AiManager:
         # update memory
         if state_vector is not None:
             if self.currentTransition != None: # update currentTransition with the next state
-                self.currentTransition[2] = state_vector
-                self.memory.push(self.currentTransition)
+                if len(self.currentTransition) > 1:
+                    for idx in range(len(self.currentTransition[1])):
+                        self.memory.push([self.currentTransition[0], self.currentTransition[1][idx].unsqueeze(1), state_vector, self.currentTransition[3]])
+                else: 
+                    self.currentTransition[2] = state_vector
+                    self.memory.push(self.currentTransition)
             
             self.currentTransition = [state_vector, action_vector, None, torch.Tensor([0]).to(self.device)]
 
@@ -146,6 +151,8 @@ class AiManager:
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg:ScenarioConcludedNotificationPb):
         self.blacklist = set()
+        self.assetName_to_NNidx: dict[str, int] = {}
+        self.setAssetName_to_NNidx = True
         if msg.score != 10000:
             print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
 
@@ -265,6 +272,10 @@ class AiManager:
                     ship_weaponType_blacklist = set()
                     
                     executedActionIdxes = []
+
+                    if 300 in locations:
+                        return [], torch.Tensor([[300]], device=self.device), output_vector
+
                     for loc in locations:
                         # convert Tensor of one value to the integer it contains
                         loc = int(loc)
@@ -325,18 +336,24 @@ class AiManager:
                     
                         # add action to datasets
                         final_output.append(ship_action)
+                        # print(f"appended loc: {loc}")
                         executedActionIdxes.append(loc)
                         # self.blacklist.add(targets[assignedTarget].TrackId)
                         self.blacklist.add(assignedTarget)
 
-                    if len(final_output) > 0:
-                        print(f"Number of actions taken: {len(final_output)}")
-                        print(final_output)
+                    # if len(final_output) > 0:
+                        # print(f"Number of actions taken: {len(final_output)}")
+                        # print(final_output)
 
-                    return final_output, torch.Tensor(executedActionIdxes, device=self.device), output_vector
+                    if len(executedActionIdxes) == 0:
+                        # print("action idx empty")
+                        return final_output, torch.Tensor([[300]], device=self.device), output_vector
+                    else:
+                        # print(f"{executedActionIdxes}")
+                        return final_output, torch.Tensor(executedActionIdxes, device=self.device).unsqueeze(1), output_vector
             else: # random
                 return *self.generate_random_action(msg), output_vector
-        return [], torch.Tensor([[]], device=self.device), None
+        return [], None, None
 
     def generate_random_action(self, msg: StatePb):
         """
@@ -356,7 +373,8 @@ class AiManager:
         ship_action.TargetId = track_choice.TrackId
 
         if ship_action.TargetId in self.blacklist:
-            return [], torch.Tensor([[]], device=self.device)
+            # print("random in blacklist")
+            return [],  torch.Tensor([[300]], device=self.device)
         else:
             self.blacklist.add(ship_action.TargetId)             
 
@@ -390,7 +408,8 @@ class AiManager:
         
         reversed_NN_idx = 60 * self.assetName_to_NNidx[rand_asset.AssetName] + WEAPON_TO_IDX[ship_action.weapon] * 30 + target_threatId
 
-        return [ship_action], torch.Tensor([reversed_NN_idx], device=self.device)
+        # print(f"random {reversed_NN_idx}")
+        return [ship_action], torch.Tensor([[reversed_NN_idx]], device=self.device)
 
     def rl_update(self, score_change):
         """
@@ -415,22 +434,22 @@ class AiManager:
         non_final_next_states = torch.cat([s for s in batch.next_state
                                                     if s is not None])
         state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
+        action_batch = torch.cat(batch.action).type(torch.int64) 
         reward_batch = torch.cat(batch.reward)
 
         # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
         # columns of actions taken. These are the actions which would've been taken
         # for each batch state according to policy_net
-        state_action_values = self.policy_net(state_batch).gather(dim=1, index=action_batch)
+        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         # Compute V(s_{t+1}) for all next states.
         # Expected values of actions for non_final_next_states are computed based
         # on the "older" target_net; selecting their best reward with max(1)[0].
         # This is merged based on the mask, such that we'll have either the expected
         # state value or 0 in case the state was final.
-        next_state_values = torch.zeros(BATCH_SIZE, device=self.device)
+        next_state_values = torch.zeros(len(non_final_mask), device=self.device)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+             next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
