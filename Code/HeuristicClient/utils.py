@@ -164,7 +164,7 @@ def time_to_missile(target, target_pos, target_vel, wep_type, ship_pos, def_ship
     if wep_type == "Chainshot":
         weapon_speed = 1234
 
-    wep_to_def
+    wep_to_def = distance()
         
 
 
