@@ -31,7 +31,7 @@ class AiManager:
 
     # Constructor
     def __init__(self, publisher: Publisher):
-        print("Constructing AI Manager")
+        # print("Constructing AI Manager")
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
@@ -40,12 +40,12 @@ class AiManager:
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg: StatePb):
 
-        # Call function to print StatePb information
-        # self.printStateInfo(msg)
+        # Call function to # print StatePb information
+        # self.# printStateInfo(msg)
 
         # Call function to show example of building an action
         output_message = self.createActions(msg)
-        # print(output_message)
+        # # print(output_message)
 
         # To advance in step mode, its required to return an OutputPb
         self.ai_pub.publish(output_message)
@@ -53,13 +53,14 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
-        print("Scenario run: " + str(msg.sessionId))
+        # print("Scenario run: " + str(msg.sessionId))
+        pass
 
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg: ScenarioConcludedNotificationPb):
         self.blacklist = set()
-        print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
-        print(self.highest_distance)
+        # print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
+        # print(self.highest_distance)
 
     def createActions(self, msg: StatePb):
         """
@@ -78,7 +79,11 @@ class AiManager:
 
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
-        output_message.actions.extend(self.simple_greedy_strategy(msg))
+        output_message.actions.extend([])
+
+        if len(msg.Tracks) > 0:
+            print(msg.Tracks)
+            print(msg.assets)
 
         return output_message
 
@@ -122,7 +127,7 @@ class AiManager:
                 self.track_danger_levels.insert(loc, (danger_metric, track)) if loc < len(
                     self.track_danger_levels) - 1 else self.track_danger_levels.append((danger_metric, track))
 
-        # print(self.track_danger_levels)
+        # # print(self.track_danger_levels)
 
         # if there are any threat, and we have weapons
         # and the most dangerous threat value > MAX_DANGER * TARGETING_CUTOFF
@@ -173,7 +178,7 @@ class AiManager:
 
             ship_action.weapon = rand_weapon.SystemName
 
-            return [ship_action]
+            return []
 
         else:
             return []
@@ -239,36 +244,36 @@ class AiManager:
             if weapon.Quantity > 0: return True
         return False
 
-    # Function to print state information and provide syntax examples for accessing protobuf messags
-    def printStateInfo(self, msg: StatePb):
-        print("Time: " + str(msg.time))
-        print("Score: " + str(msg.score))
+    # # Function to # print state information and provide syntax examples for accessing protobuf messags
+    # def # printStateInfo(self, msg: StatePb):
+    #     # print("Time: " + str(msg.time))
+    #     # print("Score: " + str(msg.score))
 
-        # Accessing asset fields.  Notice that is is simply the exact name as seen 
-        # In PlannerProto.proto
-        print("Assets:")
-        for asset in msg.assets:
-            print("1: " + str(asset.AssetName))
-            print("2: " + str(asset.isHVU))
-            print("3: " + str(asset.health))
-            print("4: " + str(asset.PositionX))
-            print("5: " + str(asset.PositionY))
-            print("6: " + str(asset.PositionZ))
-            print("7: " + str(asset.Lle))
-            print("8: " + str(asset.weapons))
-        print("--------------------")
+    #     # Accessing asset fields.  Notice that is is simply the exact name as seen 
+    #     # In PlannerProto.proto
+    #     # print("Assets:")
+    #     for asset in msg.assets:
+    #         # print("1: " + str(asset.AssetName))
+    #         # print("2: " + str(asset.isHVU))
+    #         # print("3: " + str(asset.health))
+    #         # print("4: " + str(asset.PositionX))
+    #         # print("5: " + str(asset.PositionY))
+    #         # print("6: " + str(asset.PositionZ))
+    #         # print("7: " + str(asset.Lle))
+    #         # print("8: " + str(asset.weapons))
+    #     # print("--------------------")
 
-        # Accessing track information is done the same way.  
-        print("Tracks:")
-        for track in msg.Tracks:
-            print("1: " + str(track.TrackId))
-            print("2: " + str(track.ThreatId))
-            print("3 " + str(track.ThreatRelationship))
-            print("4: " + str(track.Lle))
-            print("5: " + str(track.PositionX))
-            print("6: " + str(track.PositionY))
-            print("7: " + str(track.PositionZ))
-            print("8: " + str(track.VelocityX))
-            print("9 " + str(track.VelocityY))
-            print("10: " + str(track.VelocityZ))
-        print("**********************************")
+    #     # Accessing track information is done the same way.  
+    #     # print("Tracks:")
+    #     for track in msg.Tracks:
+    #         # print("1: " + str(track.TrackId))
+    #         # print("2: " + str(track.ThreatId))
+    #         # print("3 " + str(track.ThreatRelationship))
+    #         # print("4: " + str(track.Lle))
+    #         # print("5: " + str(track.PositionX))
+    #         # print("6: " + str(track.PositionY))
+    #         # print("7: " + str(track.PositionZ))
+    #         # print("8: " + str(track.VelocityX))
+    #         # print("9 " + str(track.VelocityY))
+    #         # print("10: " + str(track.VelocityZ))
+    #     # print("**********************************")

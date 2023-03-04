@@ -233,7 +233,7 @@ class AiManager:
 
             #Calculate what ships every missile is targeting
             for enemy_missile in targets_list:
-                utils.calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict, missile_target_dict)
+                utils.smart_calculate_missile_target(enemy_missile,total_assets,targeted_ships_dict, missile_target_dict)
             
             expected_value_dict = {} # Maps missile name to expected value
             print(missile_target_dict)
