@@ -83,9 +83,15 @@ class AiManager:
         # As stated, shipActions go into the OutputPb as a list of ShipActionPbs
         # output_message.actions.append(ship_action)
 
-        #force it to use one or the other
-        switch = True
-        if switch:
+        #hardcoded strategy selection, yes I know this is terrible but we have no time to think about anything non-essential
+        #2 - full heuristic
+        #1 - same as low_resources in GreedyClient, only here because I had no reason to remove it
+        switch = 2
+
+
+        if switch == 2:
+            output_message.actions.extend(self.full_heuristic_strategy(msg))
+        elif switch == 1:
             output_message.actions.extend(self.low_resources_strategy(msg))
         else:
             output_message.actions.extend(self.simple_greedy_strategy(msg))
@@ -93,6 +99,14 @@ class AiManager:
         return output_message
 
     
+    #Strategy based on the most exhaustive and complete set of heuristics we can apply in the time limit
+    def full_heuristic_strategy(self, msg:StatePb):
+
+        #TODO: everything lol
+
+        pass
+
+
     def simple_greedy_strategy(self, msg:StatePb):
         """
         Greedy target selection based on distance of enemy missile to any asset
