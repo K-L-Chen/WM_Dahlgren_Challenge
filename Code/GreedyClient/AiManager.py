@@ -36,6 +36,9 @@ class AiManager:
 
         self.logfile = None
 
+        self.ship_idhp = {}
+        self.active_missiles = []
+
     # Is passed StatePb from Planner
     def receiveStatePb(self, msg:StatePb):
 
@@ -54,7 +57,8 @@ class AiManager:
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
-        self.logfile = open('log{}_simple.txt'.format(msg.sessionId), 'w')
+        self.logfile = open('log{}_GREEDY.txt'.format(msg.sessionId), 'w')
+        
 
         
     # This method/message is used to nofify that a scenario/run has ended
@@ -89,6 +93,8 @@ class AiManager:
             output_message.actions.extend(self.low_resources_strategy(msg))
         else:
             output_message.actions.extend(self.simple_greedy_strategy(msg))
+
+        self.saveStateInfoToFile(msg)
 
         return output_message
 
@@ -265,7 +271,7 @@ class AiManager:
 
             ship_action.weapon = rand_weapon.SystemName
             
-            # self.saveStateInfoToFile(msg)
+            self.saveStateInfoToFile(msg)
 
             return [ship_action]
         else:
@@ -372,18 +378,46 @@ class AiManager:
 
     def saveStateInfoToFile(self, msg: StatePb):
         self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
+        
+        tempSIDHP = {}
+        tempMissiles = []
 
-        count: int = 1
         for asset in msg.assets:
             self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
             self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
-        
+            tempSIDHP[asset.AssetName] = asset.health
+
         self.logfile.write("------------------\nTRACKS:\n")
 
         for track in msg.Tracks:
             self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
             self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
             self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
+            
+            if track.ThreatRelationship == "Hostile":
+                tempMissiles.append(track)
 
+
+        if len(list(tempSIDHP.values())) > len(list(self.ship_idhp.values())):
+            self.logfile.write("[READING NUMBER OF SHIPS, MISSILES...]")
+            self.ship_idhp = tempSIDHP
+            self.active_missiles = tempMissiles
+            
+        elif len(list(tempSIDHP.values())) < len(list(self.ship_idhp.values())):
+            for ele in list(self.ship_idhp.keys()):
+                if self.ship_idhp[ele] not in tempSIDHP:
+                    #FIND THE MISSILE THAT KILLED IT AND PRINT ITS LAST POSZ, Z VEL
+                    self.logfile.write(f"[SHIP LOST!{self.ship_idhp[ele]}]")
+                    for missile in self.active_missiles:
+                        if missile not in tempMissiles:
+                            self.logfile.write(f"[MISSILE HIT POSITION Z, SPEED Z: {missile.PositionZ}, {missile.VelocityZ}]")
+                elif self.ship_idhp[ele] != tempSIDHP[ele]:
+                    #else, find any hits if the health doesn't match up
+                    #this is a vey dumb way of doing it, but we can manually parse it
+                    for missile in self.active_missiles:
+                        if missile not in tempMissiles:
+                            self.logfile.write(f"[MISSILE HIT POSITION Z, SPEED Z: {missile.PositionZ}, {missile.VelocityZ}]")
+            self.ship_idhp = tempSIDHP
+            self.active_missiles = tempMissiles
         
         self.logfile.write("***************************\n\n")

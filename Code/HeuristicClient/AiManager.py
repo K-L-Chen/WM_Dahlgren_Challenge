@@ -133,14 +133,115 @@ class AiManager:
             - we're looking for the WORST missiles to shoot, not the best ones, because those should be ones that lack range to do much impact
             - this may be virually optimal if we have very few initial missiles and thee isn't something SUPER sneaky
 
+        TODO: slightly modified, but simpler data structures filled out
+        TODO: function that estimates, something reasonably fast, how long it 
+        will take for a missile to reach a target (something Nick proposed: 2-line version)
+        TODO: how exactly to make a decision 
+        TODO: calculate the secondary targets
 
+
+        Important variables: Time between enemy missile and ship (imperfect; straight line approx.)
+        Find primary and secondary assets (second-closest ship to a missile)
+
+        
+        2ndary TODO: make a version of the secondary target that works with Nick's existing algorithm
         """
+        # maps the index to the asset name
+        #how the actual hell are we getting the ID?????? JOSEPH: this is how
+        #GET ID BY ITS POSITION IN INITIAL INPUT
+        assets = ['' for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
+        #USE self.update_assets_trakcs(msg)
 
-        #TODO: everything lol
+        # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
+        self.populate_asset_names(assets)
 
+
+        threats = [None] * 30 #unordered list of missiles, each entry is an int correstponding to the number of the missile
+
+        threat_info = [None] * 30 #len 30
+        asset_info = [None] * 5  #len 5, bunch of tuples
+
+        threat_targets = [None] * 30 #len 30
+        threatIds_to_trackIds = [None] * 30 # for our action outputPb
+        self.populate_threat_targets(threat_targets, threatIds_to_trackIds)
+
+        threat_secondaries = [None] * 5 #len 5
+
+        threat_filtered = [] #may/maynot need this
+
+
+        '''
+        ALGORITHM:
+
+        For each missile:
+            if it has time to get to its target and is NOT a current target, add to assets
+
+        - each threat will have an expected penalty
+          - want to minimize 
+        - if >HP missiles targeting asset, the rest may as well be targeting 2ndary target UNLESS they can't make it
+          - missiles slow down/can't retarget the later you shoot them, want to wait as long as possible
+        
+        FIRST - find current expected penalty of each missile
+        - for each missile targeting ship after ship to dies, given based on 2ndary.
+
+        - NOTE: tiebreakers should be resolved by time to target
+
+
+        For n:
+
+            For each remaining threat (missiles that are an actual threat):
+
+                - want to pick the best one to shoot
+
+                assume we destroy THIS one:
+                
+                    - want to see how this changes the situation
+
+                    find new expected penalty of each missile 
+            
+            add most effective to targets, remove from threats
+
+        '''
+
+        n = 1
+
+        for i in range(n):
+
+            pass
+
+
+    def enemy_can_reach_secondary_targets(self): 
+        # ??? TODO: Nick should explain this more. 
         pass
 
+    def populate_asset_names(self, msg: StatePb, init_lst: list):
+        i = 0
+        for asset in msg.assets:
+            if 'REFERENCE' not in asset.AssetName:
+                init_lst[i] = asset.AssetName
+                i += 1
 
+    def populate_threat_targets(self, msg: StatePb, init_lst1: list, init_lst2):
+        """
+        Get mappings from our programmatic threat index to its actual
+        threatId and trackId through two different lists respectively
+        """
+        i = 0
+        for track in msg.Tracks:
+            if track.ThreatRelationship == "Hostile":
+                 init_lst1[i] = track.ThreatId
+                 init_lst2[i] = track.TrackId
+                 i += 1
+    
+    # def populate_threatIds_to_trackIds(self, msg: StatePb, init_lst: list):
+    #     i = 0
+    #     for track in msg.Tracks:
+    #         init_lst[idx] = ((msg.Tracks[idx]).TrackID)
+    
+    
+    def filter_targets(self, target_list: list):
+        
+    
     def simple_greedy_strategy(self, msg:StatePb):
         """
         Greedy target selection based on distance of enemy missile to any asset
@@ -382,6 +483,34 @@ class AiManager:
             if weapon.Quantity > 0: return True
         return False
 
+
+    def update_assets_tracks(self, state:StatePb, asset_list: list, track_list: list):
+        '''
+        take in StatePb to return a list of AssetNames, TrackIDs
+        in the order they are in from the Pb we get initially
+        
+        IF ASSET IS HVU, then it is length of asset list - 1
+            e.g. if we have 4 ships, then HVU value is 3
+            since we have Galleon_0-2, HVU_Galleon_0
+        Else, we just grab the index at the end of the string
+        
+        @param state: the Protocol Buffer we get from the calling function
+        @return None
+        '''
+        
+        for idx in len(state.assets):
+            if((state.assets[idx]).AssetName != 'Galleon_REFERENCE_SHIP'):
+                #mult = 1
+                if((state.assets[idx]).isHVU):
+                    asset_list[idx] = len(state.assets) - 1
+                else:
+                    asset_list[idx] = (int)((state.assets[idx]).AssetName[-1])
+        
+        for idx in len(state.tracks):
+            track_list[idx] = ((state.tracks[idx]).TrackID)
+        
+        #return tempAssets, tempTracks
+
     
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg:StatePb):
@@ -420,18 +549,46 @@ class AiManager:
 
     def saveStateInfoToFile(self, msg: StatePb):
         self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
+        
+        tempSIDHP = {}
+        tempMissiles = []
 
-        count: int = 1
         for asset in msg.assets:
             self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
             self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
-        
+            tempSIDHP[asset.AssetName] = asset.health
+
         self.logfile.write("------------------\nTRACKS:\n")
 
         for track in msg.Tracks:
             self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
             self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
             self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
+            
+            if track.ThreatRelationship == "Hostile":
+                tempMissiles.append(track)
 
+
+        '''if len(list(tempSIDHP.values())) > len(list(self.ship_idhp.values())):
+            self.logfile.write("[READING NUMBER OF SHIPS, MISSILES...]")
+            self.ship_idhp = tempSIDHP
+            self.active_missiles = tempMissiles
+            
+        elif len(list(tempSIDHP.values())) < len(list(self.ship_idhp.values())):
+            for ele in list(self.ship_idhp.keys()):
+                if self.ship_idhp[ele] not in tempSIDHP:
+                    #FIND THE MISSILE THAT KILLED IT AND PRINT ITS LAST POSZ, Z VEL
+                    self.logfile.write(f"[SHIP LOST!{self.ship_idhp[ele]}]")
+                    for missile in self.active_missiles:
+                        if missile not in tempMissiles:
+                            self.logfile.write(f"[MISSILE HIT POSITION Z, SPEED Z: {missile.PositionZ}, {missile.VelocityZ}]")
+                elif self.ship_idhp[ele] != tempSIDHP[ele]:
+                    #else, find any hits if the health doesn't match up
+                    #this is a vey dumb way of doing it, but we can manually parse it
+                    for missile in self.active_missiles:
+                        if missile not in tempMissiles:
+                            self.logfile.write(f"[MISSILE HIT POSITION Z, SPEED Z: {missile.PositionZ}, {missile.VelocityZ}]")
+            self.ship_idhp = tempSIDHP
+            self.active_missiles = tempMissiles'''
         
         self.logfile.write("***************************\n\n")
