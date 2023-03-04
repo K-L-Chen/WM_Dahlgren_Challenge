@@ -234,10 +234,10 @@ class AiManager:
         #NEEDS TO BE POPULATED WITH THE MISSILES FOR EACH ASSET THAT HAVE IT AS PRIMARY TARGET (asset identified by index)
         # uses the `find_primary_target` methods in utils.py
         asset_threat_list = [[] * 5]
+        self.populate_asset_threat_list(asset_threat_list)
 
 
         ammo = utils.total_remaining_ammo(asset_weapon_info)
-        final_weapon = None #utils.
 
         delta = dt.now() - start
         print(f"Initialization time: {delta}")
@@ -337,6 +337,12 @@ class AiManager:
 
             final_target = curr_target
             best_score = curr_score
+
+            #NOTE: THIS IS A TUPLE: (SHIP INDEX, WEAPON INDEX)
+                                                 #- (index in asset_weapon_info) 
+            final_weapon = utils.slowest_avaliable_ship_weapon(final_target, asset_weapon_info, threat_positions(final_target), threat_velocities(final_target),  )
+
+            utils.find_primary_asset_of_enemy()
 
             ######
             ######     find optimal weapon to hit best target with if we have time
@@ -477,10 +483,20 @@ class AiManager:
     #     return filtered_list
 
     def populate_asset_threat_list(self, asset_poss: list[tuple[int]], threat_poss: list[tuple[int]],
-                                    at_lst: list[list]):
-        for asset_idx in range(len(asset_poss)):
-            pass
-        pass
+                                    asset_threat_lst: list[list]):
+        # Find each threat's closest asset and put that asset index in the corresponding spot
+        # in asset_threat_list
+        for threat_idx in range(len(threat_poss)):
+            min_asset_idx = 0
+            min_dist_to_asset = utils.distBtwnMissileAndShip_with_tuples(threat_poss[threat_idx], asset_poss[0])
+
+            for asset_idx in range(1, len(asset_poss)):
+                curr_dist = utils.distBtwnMissileAndShip_with_tuples(threat_poss[threat_idx], asset_poss[asset_idx])
+                if curr_dist < min_dist_to_asset:
+                    min_asset_idx = asset_idx
+                    min_dist_to_asset = curr_dist
+            
+            asset_threat_lst[min_asset_idx].append(threat_idx)
 
 
     def update_asset_threat_list(self, msg:StatePb, at_lst: list[list]):

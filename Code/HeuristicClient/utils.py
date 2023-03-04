@@ -121,7 +121,7 @@ def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon
 #   ship: ship index
 #
 #RETURNS: 
-#   shipIndex, weaponIndex
+#   (shipIndex, weaponIndex)
 def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, def_ship_pos):
     shipID, wepID = None, None
     
@@ -130,9 +130,13 @@ def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, def_
     for ship in wep_info:
         for i in range(2):
             if ship[i][1] > 0 and ship[i][2] == True:
-                new_time = time_to_missile(target, target_pos, target_vel)
-                if new_time < best_time:
-                    best_time
+                new_time, possible = time_to_missile(target, target_pos, target_vel)
+                if possible and new_time > best_time:
+                    best_time = new_time
+                    shipID = ship
+                    wepID = i
+    
+    return (shipID, wepID)
         
         
 
@@ -158,16 +162,18 @@ def time_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
     return distance_between_missile_and_ship(missile,ship) / missile_speed
 
 #updated time for weapon to missile
-def time_to_missile(target, target_pos, target_vel, wep_type, ship_pos, def_ship_pos):
+def missile_to_ship_info(target, target_pos, target_vel, wep_type, ship_pos, def_ship_pos):
     
+    target_speed = sqrt(target_vel(0)**2, target_vel(1), (target_vel(2)*-1)**2)
+
     weapon_speed = 3500
     if wep_type == "Chainshot":
         weapon_speed = 1234
 
-    wep_to_def = distance()
-        
+    wep_to_def = distance(*ship_pos, *def_ship_pos) / weapon_speed
+    missile_to_def = distance(*target_pos, *def_ship_pos) / target_speed
 
-
+    return (wep_to_def+missile_to_def)/2, (wep_to_def < missile_to_def)
 
 #Arguments: a missile, the dictionary mapping ships to missiles targeting them
 #The dictionary mapping missiles to their targets
