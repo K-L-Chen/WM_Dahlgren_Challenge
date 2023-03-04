@@ -201,10 +201,15 @@ class AiManager:
         #GET ID BY ITS POSITION IN INITIAL INPUT
         asset_names = [None for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
         asset_positions = [None] * 5  #len 5, bunch of tuple locations(x, y, z)
+        asset_HVU_vals = [None] * 5
         asset_weapon_info = [None] * 5 # each element: list of of tuples (name, quantity, WeaponState)
+        
+        asset_ids = [None] * 5
+        assetPb_list = [None] * 5
+        self.asset_ids(msg, asset_ids, assetPb_list)
         # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
         # self.populate_asset_names(assets)
-        self.populate_asset_info(msg, asset_names, asset_positions, asset_weapon_info)
+        self.populate_asset_info(msg, asset_names, asset_positions, asset_weapon_info, asset_HVU_vals)
         #USE self.update_assets_trakcs(msg)
 
 
@@ -218,6 +223,7 @@ class AiManager:
         threat_positions = [None] * 30
         threat_velocities = [None] * 30
         self.populate_threat_info(msg, targetIds, threat_trackIds, threat_positions, threat_velocities)
+
         # self.populate_threatIds(msg, targetIds, threatIds_to_trackIds)
 
         threat_secondaries = [None] * 5 #len 5
@@ -278,7 +284,7 @@ class AiManager:
 
         n = 1 # depth of search
 
-        curr_threats = [i in threat_filtered]
+        curr_threats = [i for i in filtered_target_indices]
         best_score = -100000000
         shotsfired = 0
 
@@ -297,33 +303,50 @@ class AiManager:
 
                 threat = curr_threats[i]
 
-                inner_threats = [i for i in curr_threats].remove[threat]
+                inner_threats = curr_threats.copy()
+                inner_threats.remove(threat)
                 inner_target = None
                 
-                for a in range(ammo - shotsfired):
-                    pass
-                
-                #NOTE: PSEUDOCODE FOR FINAL STAGE EXPECTED VALUE GREEDY
-                #   if there are missiles with HVU as target:
-                #       remove the one that will hit HVU first
-                #   elif there are missiles with HVU as 2ndary target AND primary target has more missiles inbound than HP:
-                #       remove the one that will hit 2ndary target first
-                #   else:
-                #       remove missile that hits first
+                #old        #for a in range(ammo - shotsfired):
+                            #    
+                            #    pass
+                            
+                            #NOTE: PSEUDOCODE FOR FINAL STAGE EXPECTED VALUE GREEDY
+                            #   if there are missiles with HVU as target:
+                            #       remove the one that will hit HVU first
+                            #   elif there are missiles with HVU as 2ndary target AND primary target has more missiles inbound than HP:
+                            #       remove the one that will hit 2ndary target first
+                            #   else:
+                            #       remove missile that hits first
+
+
+                #EASY STRAT:
+                #SORT INNER_THREATS BY EXPECTED_VALUE_NEW
+                #remove highest ammo-1 threats
+                #list comp over new version of list
+
 
                 total_score = 0
                 
                 #TODO keep track of final state
+                
+                exp_vals = []
 
-                for j in range(len(inner_threats)):
-
-                    threat_score = 0 #placeholder, see comments below
-
-                    #sort inner threats
-
-                    #add damage of the first target that hits, remove it from 
-
-                    total_score + threat_score
+                #for i_threat in inner_threats:
+                idx = 0
+                for assetpb in assetPb_list:
+                    #parsables
+                    primary = (utils.find_primary_target(threat, assetPb_list)).isHVU()
+                    #primary = utils.find_primary_asset_of_enemy(threat_positions[i_threat],asset_positions)
+                    secondary = (utils.find_secondary_target(threat, assetPb_list)).isHVU()#(threat_positions[i_threat], asset_positions)
+                    #primary_HVU = 
+                    #secondary_HVU =
+                    kill_1st = utils.will_be_destroyed(assetpb, asset_threat_list[asset_ids[idx]])
+                    kill_2nd = utils.will_be_destroyed(assetpb, asset_threat_list[asset_ids[idx]])
+                    reach_2nd = utils.can_reach_secondary_target
+                
+                    score = utils.expected_value_new(primary, secondary, kill_1st, kill_2nd, reach_2nd)
+                    idx += 1
 
 
                 #update "current" by best innermost target
@@ -338,28 +361,31 @@ class AiManager:
             final_target = curr_target
             best_score = curr_score
 
+            def_ship = utils.find_primary_asset_of_enemy(threat_positions(final_target),asset_positions)
+
             #NOTE: THIS IS A TUPLE: (SHIP INDEX, WEAPON INDEX)
                                                  #- (index in asset_weapon_info) 
-            final_weapon = utils.slowest_avaliable_ship_weapon(final_target, asset_weapon_info, threat_positions(final_target), threat_velocities(final_target),  )
+            final_weapon = utils.slowest_avaliable_ship_weapon(final_target, asset_weapon_info, threat_positions(final_target), threat_velocities(final_target), def_ship)
 
-            utils.find_primary_asset_of_enemy()
+
 
             ######
             ######     find optimal weapon to hit best target with if we have time
             ######
 
-            #TODO SEND THE FINAL PB
+            # sending THE FINAL OUTPUTPB
 
-            # WEAPON: final_weapon
-            # TARGET: final_target
+            # WEAPON: final_weapon is a tuple of (ship index, weapon index) from asset_weapon_info
+            # TARGET: final_target is from filtered_target_indices
 
-                
-                
+            ship_idx, weapon_idx = final_weapon
+
+            ship_action: ShipActionPb = ShipActionPb()
+            ship_action.AssetName = asset_names[ship_idx] 
+            ship_action.TargetId = threat_trackIds[weapon_idx] 
+            ship_action.weapon = asset_weapon_info[ship_idx][weapon_idx]
             
-
-                
-
-                    
+            return [ship_action]
 
 
     # def populate_asset_names(self, msg: StatePb, init_lst: list):
@@ -369,14 +395,14 @@ class AiManager:
     #             init_lst[i] = asset.AssetName
     #             i += 1
     
-    def populate_asset_info(self, msg, names, positions, weapon_info):
+    def populate_asset_info(self, msg, names, positions, weapon_info, is_HVU_vals):
         i = 0
         for asset in msg.assets:
             if 'REFERENCE' not in asset.AssetName:
                 names[i] = asset.AssetName
                 positions[i] = (asset.PositionX, asset.PositionY, asset.PositionZ)
                 weapon_info[i] = []
-                
+                is_HVU_vals[i] = asset.isHVU()
                 for w_data in asset.weapons:
                     weapon_info[i].append((w_data.SystemName, w_data.Quantity, w_data.WeaponState))
                 i += 1
@@ -754,6 +780,28 @@ class AiManager:
         for weapon in asset.weapons:
             if weapon.Quantity > 0: return True
         return False
+    
+    def asset_ids(self, state:StatePb, asset_list: list, assetPb_list: list):
+        '''
+        take in StatePb to return a list of AssetNames, TrackIDs
+        in the order they are in from the Pb we get initially
+        
+        IF ASSET IS HVU, then it is length of asset list - 1
+            e.g. if we have 4 ships, then HVU value is 3
+            since we have Galleon_0-2, HVU_Galleon_0
+        Else, we just grab the index at the end of the string
+        
+        @param state: the Protocol Buffer we get from the calling function
+        @return None
+        '''
+        assetPb_list = state.assets
+        for idx in len(assetPb_list):
+            if((state.assets[idx]).AssetName != 'Galleon_REFERENCE_SHIP'):
+                #mult = 1
+                if((state.assets[idx]).isHVU):
+                    asset_list[idx] = len(state.assets) - 1
+                else:
+                    asset_list[idx] = (int)((state.assets[idx]).AssetName[-1])
 
     """
     def update_assets_tracks(self, state:StatePb, asset_list: list, track_list: list):

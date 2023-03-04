@@ -70,6 +70,29 @@ def find_secondary_target(missile: _TRACKPB, asset_list : list[_ASSETPB]):
                 secondary_target = asset
     return secondary_target
 
+def findSecondaryTarget_with_tuples(missile_pos: tuple[int], asset_pos_list : list[tuple[int]]):
+    if len(asset_pos_list) < 2:
+        return None
+    primary_asset = find_primary_asset_of_enemy(missile_pos, asset_pos_list)
+    primary_asset_pos = asset_pos_list[primary_asset]
+    temp2 = primary_asset_pos[-1]
+
+    secondary_target = None
+    cur_dist = 1e10
+    for asset in asset_pos_list:
+        if asset != primary_asset:
+            curr_asset_pos = asset_pos_list[asset]
+            temp1 = curr_asset_pos[-1]
+            curr_asset_pos[-1] = 0 
+            # dist_btwn_ships = distance(primary_target.PositionX,primary_target.PositionY,0,asset.PositionX,asset.PositionY,0)
+            dist_btwn_ships = distance(*primary_asset_pos, *curr_asset_pos)
+            curr_asset_pos[-1] = temp1
+
+            if dist_btwn_ships < cur_dist and dist_btwn_ships != 0:
+                cur_dist = dist_btwn_ships
+                secondary_target = asset
+    return secondary_target
+
 #Arguments: a missile and its secondary target
 #Returns if this secondary target is outside of the minimum retargeting radius
 #Not sure how to calculate this
@@ -122,7 +145,7 @@ def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon
 #
 #RETURNS: 
 #   (shipIndex, weaponIndex)
-def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, def_ship_pos):
+def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, ship_pos, def_ship_pos):
     shipID, wepID = None, None
     
     best_time = 301
@@ -130,7 +153,7 @@ def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, def_
     for ship in wep_info:
         for i in range(2):
             if ship[i][1] > 0 and ship[i][2] == True:
-                new_time, possible = time_to_missile(target, target_pos, target_vel)
+                new_time, possible = missile_to_ship_info(target, target_pos, target_vel, wep_info[shipID][0], shipID, def_ship_pos)
                 if possible and new_time > best_time:
                     best_time = new_time
                     shipID = ship
@@ -190,6 +213,35 @@ def expected_value(missile : _TRACKPB, target_dict, missile_target_dict):
         return 5000 + 10 / distance_between_missile_and_target
     else:
         return 1000 + 10 / distance_between_missile_and_target
+
+def expected_value_new(primary_HVU, secondary_HVU, kill_1st, kill_2nd, reach_2nd):
+    score = 0
+    if not kill_1st:
+        score = 1000
+        if primary_HVU:
+            score = 2000
+    else:
+        score = 5000
+        if primary_HVU: 
+            score = 9000
+        if reach_2nd:
+            if not kill_2nd:
+                score += 500
+                if secondary_HVU:
+                    score += 500
+            else:
+                score += 2500
+                if secondary_HVU:
+                    score += 2000
+
+    return score
+    
+        
+
+
+    
+            
+
 
 
 #Arguments: the most targeted ship and the list of missiles targeting it
