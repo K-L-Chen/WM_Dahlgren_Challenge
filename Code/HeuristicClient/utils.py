@@ -7,6 +7,38 @@ def distance(x1, y1, z1, x2, y2, z2):
     return ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2)) ** (1/2)
 
 
+#Finds WHEN a given missile will reach its SECONDARY target if it exists
+#Returns a number of seconds in the future
+def time_to_reach_secondary(missile: _TRACKPB, asset_list : list[_ASSETPB] ):
+    #Calculate WHEN the primary target will be destroyed
+    primary_target = find_primary_target(missile,asset_list)
+    #time to destruction
+    ttd = "PLACEHOLDER"
+    #Estimate WHERE our missile will be at this time
+    est_x = missile.PositionX + missile.VelocityX * ttd
+    est_y = missile.PositionY + missile.VelocityY * ttd
+    est_z = missile.PositionZ + missile.VelocityZ * ttd
+    #Calculate WHEN missile will reach secondary target FROM this position IF it can reach it
+    secondary_target  = find_secondary_target(missile,asset_list)
+    if secondary_target is None or not can_reach_secondary_target(missile,secondary_target):
+        return 301
+    missile_velocity = (missile.VelocityX ** 2 + missile.VelocityY ** 2 + missile.VelocityZ ** 2) ** (1/2)
+    return missile_velocity / distance(est_x,est_y,est_z, secondary_target.PositionX,secondary_target.PositionY,secondary_target.PositionY)
+
+#ship is the ship that will be destroyed
+#targeting_missiles is a list of the missiles that are targeting a given ship
+def when_ship_will_be_destroyed(ship, targeting_missiles):
+    targeting_missiles.sort(reverse = True, key=time_between_missile_and_ship)
+    
+#Returns the TOTAL remaining ammo for our entire fleet
+#Argument: a list of our assets
+def total_remaining_ammo(asset_list : list[_ASSETPB]):
+    remaining_ammo = 0
+    for asset in asset_list:
+        for weapon in asset.weapons:
+            remaining_ammo = remaining_ammo + weapon.Quantity
+    return remaining_ammo
+
 #Arguments: the missile to be checked, a list of assets
 #Returns the SECONDARY target of this missile (if it redirects)
 #Returns None if there are no secondary targets possible
@@ -69,8 +101,17 @@ def slowest_available_ship_weapon(missile: _TRACKPB, asset_list, ship: _ASSETPB)
             if weapon.SystemName == "Chainshot" or i == len(ship.weapons) - 1:
                 return weapon
 
+#Arguments: a ship, a list of assets, and a list of missiles
+#Returns true if the number of active missiles targeting it is greater than its health
+def will_be_destroyed(ship: _ASSETPB, asset_list, missile_list):
+    num_threats = 0
+    for missile in missile_list:
+        if find_primary_target(missile,asset_list) == ship:
+            num_threats = num_threats + 1
+    return num_threats >= ship.health
 
-
+#Returns true if weapon_type from defending_ship will reach missile before missile reaches its primary target
+#Requires missile, asset_list, defending_ship, weapon_type
 def can_reach_missile_in_time(missile:_TRACKPB, asset_list, defending_ship : _ASSETPB, weapon_type : _WEAPONPB):
     target_ship = find_primary_target(missile, asset_list)
     return time_between_ships(defending_ship, target_ship, weapon_type) < time_between_missile_and_ship(missile,target_ship)
@@ -132,3 +173,8 @@ def find_closest_ready_asset(most_danger_threat : _TRACKPB, unassigned_assets : 
 
 
 
+def enemy_can_reach_secondary_targets(self): 
+    # ??? TODO: Nick should explain this more. 
+    pass
+
+def
