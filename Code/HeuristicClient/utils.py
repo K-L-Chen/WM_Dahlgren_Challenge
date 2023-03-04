@@ -1,5 +1,6 @@
 from PlannerProto_pb2 import _TRACKPB, _ASSETPB, _WEAPONPB
 from random import choice
+from math import sqrt
 PI = 3.14159265
 TURNING_SPEED = 25
 
@@ -93,6 +94,7 @@ def find_primary_target(missile: _TRACKPB, asset_list : list[_ASSETPB]):
 def distance_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
     return distance(missile.PositionX, missile.PositionY, 0, ship.PositionX, ship.PositionY, 0)
 
+
 #returns the time it takes for a weapon from one ship to reach another
 def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon_type : _WEAPONPB):
     distance_between_ships = distance(defending_ship.PositionX,defending_ship.PositionY,defending_ship.PositionZ, 
@@ -117,19 +119,21 @@ def time_between_ships(defending_ship : _ASSETPB, target_ship : _ASSETPB, weapon
 #   target: missile ID
 #   wep_info: the whole list
 #   ship: ship index
+#
 #RETURNS: 
 #   shipIndex, weaponIndex
-def slowest_avaliable_ship_weapon(target, wep_info):
+def slowest_avaliable_ship_weapon(target, wep_info, target_pos, target_vel, def_ship_pos):
     shipID, wepID = None, None
     
     best_time = 301
 
     for ship in wep_info:
-        #weapon 0
-        if ship[0][1] > 0 and ship[0][2] == True:
-            pass
-        else: #weapon 1
-            pass
+        for i in range(2):
+            if ship[i][1] > 0 and ship[i][2] == True:
+                new_time = time_to_missile(target, target_pos, target_vel)
+                if new_time < best_time:
+                    best_time
+        
         
 
 #Arguments: a ship and a list of missiles targeting it
@@ -150,8 +154,20 @@ def can_reach_missile_in_time(missile:_TRACKPB, asset_list, defending_ship : _AS
 
 #returns the time between a missile and its target
 def time_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
-    missile_velocity = (missile.VelocityX * missile.VelocityX + missile.VelocityY * missile.VelocityY + missile.VelocityZ * missile.VelocityZ) ** (1/2)
-    return distance_between_missile_and_ship(missile,ship) / missile_velocity
+    missile_speed = (missile.VelocityX * missile.VelocityX + missile.VelocityY * missile.VelocityY + missile.VelocityZ * missile.VelocityZ) ** (1/2)
+    return distance_between_missile_and_ship(missile,ship) / missile_speed
+
+#updated time for weapon to missile
+def time_to_missile(target, target_pos, target_vel, wep_type, ship_pos, def_ship_pos):
+    
+    weapon_speed = 3500
+    if wep_type == "Chainshot":
+        weapon_speed = 1234
+
+    wep_to_def
+        
+
+
 
 #Arguments: a missile, the dictionary mapping ships to missiles targeting them
 #The dictionary mapping missiles to their targets
@@ -211,14 +227,14 @@ def find_primary_asset_of_enemy(missile_pos: tuple[int], asset_pos_list : list[t
 
     # find max. by comparisons with distance between first ship in the list 
     closest_asset = 0
-    dist = dist_missile_ship_with_tuples(missile_pos, asset_pos_list[0])
+    dist = distBtwnMissileAndShip_with_tuples(missile_pos, asset_pos_list[0])
 
     for asset_pos_idx in range(len(asset_pos_list)):
         # z-coordinate does not matter
         preserved_assetZPos = asset_pos_list[asset_pos_idx][-1]
         asset_pos_list[asset_pos_idx][-1] = 0 
 
-        if dist_missile_ship_with_tuples(missile_pos, asset_pos_list[asset_pos_idx]) < dist:
+        if distBtwnMissileAndShip_with_tuples(missile_pos, asset_pos_list[asset_pos_idx]) < dist:
             closest_asset = asset_pos_idx
 
         asset_pos_list[asset_pos_idx][-1] = preserved_assetZPos
@@ -227,6 +243,13 @@ def find_primary_asset_of_enemy(missile_pos: tuple[int], asset_pos_list : list[t
     return closest_asset
 
 #returns the DISTANCE between a given missile and a given ship
-def dist_missile_ship_with_tuples(missile_pos: tuple[int], ship_pos: tuple[int]):
+def distBtwnMissileAndShip_with_tuples(missile_pos: tuple[int], ship_pos: tuple[int]):
     # return distance(missile.PositionX, missile.PositionY, 0, ship.PositionX, ship.PositionY, 0)
     return distance(*missile_pos, *ship_pos)
+
+
+
+#returns the time between a missile and its target
+def timeBtwnEnemyAndShip_with_tuples(enemy_velos: tuple[int], enemy_pos: tuple[int], ship_pos: tuple[int]):
+    missile_speed = (enemy_velos[0] * enemy_velos[0] + enemy_velos[1] * enemy_velos[2] + enemy_velos[2] * enemy_velos[2]) ** 0.5
+    return distBtwnMissileAndShip_with_tuples(enemy_pos, ship_pos) / missile_speed
