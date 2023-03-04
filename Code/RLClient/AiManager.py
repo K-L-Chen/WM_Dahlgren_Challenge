@@ -19,6 +19,7 @@ import Environment
 from Environment import Environment
 from Memory import Transition
 from collections import OrderedDict
+from datetime import datetime as dt
 
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
@@ -93,6 +94,7 @@ class AiManager:
 
         self.steps_done = 0
         self.training = True
+        self.start = dt.now()
 
         self.currentTransition = None
 
@@ -142,29 +144,36 @@ class AiManager:
                     self.currentTransition[2] = state_vector
                     self.memory.push(self.currentTransition)
             
-            self.currentTransition = [state_vector, action_vector, None, torch.tensor([0], device=self.device, dtype=torch.float32)]
+            self.currentTransition = [state_vector, action_vector, None, torch.tensor([0.0], device=self.device, dtype=torch.float32)]
 
         if self.current_score != msg.score:
             self.memory.backfill_batch(msg.score - self.current_score)
             if len(self.memory) > 2: 
-                self.rl_update(msg.score - self.current_score)
+                self.rl_update()
+
+                target_net_state_dict = self.target_net.state_dict()
+                policy_net_state_dict = self.policy_net.state_dict()
+                for key in policy_net_state_dict:
+                    target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+                self.target_net.load_state_dict(target_net_state_dict)
             self.current_score = msg.score
 
         
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
-        print("Scenario run: " + str(msg.sessionId))
+        # print("Scenario run: " + str(msg.sessionId))
         self.current_score = 0
 
         
     # This method/message is used to nofify that a scenario/run has ended
     def receiveScenarioConcludedNotificationPb(self, msg:ScenarioConcludedNotificationPb):
+        delta = dt.now() - self.start
+        print(f"Run {msg.sessionId} — Score: {msg.score}, time: {delta}")
         self.blacklist = set()
         self.assetName_to_NNidx: dict[str, int] = {}
         self.setAssetName_to_NNidx = True
-        if msg.score != 10000:
-            print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
         self.save(POLICY_FILE, TARGET_FILE)
+        self.start = dt.now()
 
 
     def createActions(self, msg:StatePb):
@@ -421,7 +430,7 @@ class AiManager:
         # print(f"random {reversed_NN_idx}")
         return [ship_action], torch.tensor([[reversed_NN_idx]], device=self.device)
 
-    def rl_update(self, score_change):
+    def rl_update(self):
         """
         Run this function when the score gets updated (we get feedback)
         """
