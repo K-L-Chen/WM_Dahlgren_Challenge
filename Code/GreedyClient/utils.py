@@ -25,6 +25,19 @@ def time_between_missile_and_ship(missile : _TRACKPB, ship : _ASSETPB):
     missile_velocity = (missile.VelocityX ** 2 + missile.VelocityY ** 2 + missile.VelocityZ ** 2) ** (1/2)
     return distance_between_missile_and_ship(missile,ship) / missile_velocity
 
+
+def smart_calculate_missile_target(missile : _TRACKPB, asset_list : list[_ASSETPB], target_dict, missile_target_dict):
+    closest_asset = asset_list[0]
+    dist = distance_between_missile_and_ship(missile, asset_list[0])
+    for asset in asset_list:
+        if distance_between_missile_and_ship(missile, asset) < dist:
+            closest_asset = asset
+    if closest_asset.AssetName in target_dict.keys():
+        target_dict[closest_asset.AssetName].append(missile)
+    else:
+        target_dict[closest_asset.AssetName] = [missile]
+    missile_target_dict[missile.TrackId] = closest_asset
+    
 #Arguments: missile and list of assets
 #Adds a new entry to the target_dict mapping the asset to a list of the missiles targeting it
 #Another argument - missile_target_dict of missileName : target

@@ -23,10 +23,11 @@ import math
 # population size
 assert math.comb(CLONES, 2) >= PAIRINGS_PER_GENERATION
 
-MAX_MUTATION_PERCENT = 0.4 # Can change a weight or a bias by up to MUTATION_SIZE of its current value
-MUTATION_RATE = 0.3 # Odds that any given weight or bias will mutate
-PARENT_PERCENTAGE = 0.2 # how much of the population we want to sample from for parents to breed
-SHIFT_SIZE = 0.8 # When breeding, how much should the resulting (higher = more) children be shifted to their parents
+MAX_MUTATION_PERCENT = 1.0 # Can change a weight or a bias by up to MUTATION_SIZE of its current value
+MUTATION_RANGE = 2
+MUTATION_RATE = 3.0 # Odds that any given weight or bias will mutate
+# PARENT_PERCENTAGE = 0.2 # how much of the population we want to sample from for parents to breed
+SHIFT_SIZE = 0.7 # When breeding, how much should the resulting (higher = more) children be shifted to their parents
 
 class GeneticAlgorithm:
     
@@ -102,9 +103,13 @@ class GeneticAlgorithm:
                 if random.random() < MUTATION_RATE:
                     # perturbate between [0, MAX_MUTATION_PERCENT] for each child's param_name, additive or subtractive
                     # (i.e. perturbate betweeen 0 to 40% for each child's bias of this fully-connected layer)
-                    dict_params_c1[param_name].data.copy_(dict_params_c1[param_name].data + MAX_MUTATION_PERCENT * random.uniform(-1,1) * dict_params_c1[param_name].data)
-                    dict_params_c2[param_name].data.copy_(dict_params_c2[param_name].data + MAX_MUTATION_PERCENT * random.uniform(-1,1) * dict_params_c2[param_name].data)
-                    dict_params_c3[param_name].data.copy_(dict_params_c3[param_name].data + MAX_MUTATION_PERCENT * random.uniform(-1,1) * dict_params_c3[param_name].data)
+                    mutation_val_c1 = random.uniform(-MUTATION_RATE, MUTATION_RATE)
+                    mutataion_val_c2 = random.uniform(-MUTATION_RATE, MUTATION_RATE)
+                    mutataion_val_c3 = random.uniform(-MUTATION_RATE, MUTATION_RATE)
+
+                    dict_params_c1[param_name].data.copy_(dict_params_c1[param_name].data + MAX_MUTATION_PERCENT * mutation_val_c1 * dict_params_c1[param_name].data)
+                    dict_params_c2[param_name].data.copy_(dict_params_c2[param_name].data + MAX_MUTATION_PERCENT * mutataion_val_c2 * dict_params_c2[param_name].data)
+                    dict_params_c3[param_name].data.copy_(dict_params_c3[param_name].data + MAX_MUTATION_PERCENT * mutataion_val_c3 * dict_params_c3[param_name].data)
             else:
                 print(f"Something is wrong here: the name {param_name} is not in dict_params_c1 keys: {dict_params_c1.keys()}")
 
@@ -121,7 +126,7 @@ class GeneticAlgorithm:
             
 
     #Sets an entirely new population. Only called when loading an old population from a file.
-    def set_population(self, population_fp: str):
+    def set_population(self, population_fp):
         self.population = torch.load(population_fp)
 
     def save_population(self, population_fp):
