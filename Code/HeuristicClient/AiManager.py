@@ -184,7 +184,7 @@ class AiManager:
 
 
         ammo = utils.total_remaining_ammo(asset_weapon_info)
-        final_weapon = None: #utils.
+        final_weapon = None #utils.
 
 
         '''
