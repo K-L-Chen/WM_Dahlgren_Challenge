@@ -121,8 +121,8 @@ class AiManager:
 
         targetIds = [None] * 30 #len 30
         threat_trackIds = [None] * 30 # for our action outputPb
-        threat_positions = [None] * 30
-        threat_velocities = [None] * 30
+        threat_positions = [None] * 30 #list of tuples
+        threat_velocities = [None] * 30 #list of tuples
         self.populate_threat_info(msg, targetIds, threat_trackIds, threat_positions, threat_velocities)
         # self.populate_threatIds(msg, targetIds, threatIds_to_trackIds)
 
@@ -222,7 +222,10 @@ class AiManager:
 
         threat_secondaries = [None] * 5 #len 5
 
-        threat_filtered = self.filter_targets(msg, threat_trackIds) #may/maynot need this
+        # list of indices corresponding to the above data structures aka particular missiles
+        # that are active and unaddressed
+        threat_data_lists = [targetIds, threat_trackIds, threat_positions, threat_velocities]
+        filtered_target_indices = self.get_filtered_target_indices(msg, threat_data_lists) #may/maynot need this
         
         #STUFF I NEED!!!!!!!!!!!!!!!!!!!
 
@@ -393,35 +396,90 @@ class AiManager:
     #     for track in msg.Tracks:
     #         init_lst[idx] = ((msg.Tracks[idx]).TrackID)
 
-    def filter_targets(self, msg: StatePb, target_list: list):
+    def get_filtered_target_indices(self, msg: StatePb, assetPos_lst, threat_data_lists: list[list]):
         """
-        Produces the final target space that we will work on.
+        Modifies `threat_data_lists`
+
+        threat_data_lists = [targetIds, threat_trackIds, threat_positions, threat_velocities]
+        These 4 lists have the same length (i.e., 30)
+
+        Filters out:
+            - already-assigned missiles
+            - missiles that will not reach any of the ships on time
+
         SHOVE MISSILES THAT CANNOT HIT ASSETS IN TIME TO BLACKLIST
         
-        @param target_list: to be filtered. Is a list of length 30
-        
-        @return filtered_list
+        @param threat_data_lists: list of lists of size 30 for max number of missiles
+        For every target we want to filter out, we'll filter out that index
+        on ALL lists in 
+
+        @return list of indices in accordance with one of our lists in our 
+        `threat_data_lists` that are not assigned and could reach at least one ship 
+        during the simulation
         """
+        target_ids = threat_data_lists[0]
+        threat_trackIds = threat_data_lists[1]
+        threat_poss = threat_data_lists[2]
+        threat_velos = threat_data_lists[3]
+
         #300 seconds is max amount of time to do everything
         max_time = 300
         #get current time
         cur_time_remaining = max_time - msg.time
         
-        idx = 0
-        filtered_list = [None] * 30
-        for target in target_list:
-            if target is not None:
-                time_to_target = utils.distance_between_missile_and_ship(msg.Tracks[target])
-            
-                if target not in self.blacklist and cur_time_remaining > time_to_target:
-                    filtered_list[idx] = target
-                    idx += 1
+        to_ret = []
+
+        for i in range(len(target_ids)):
+            # assignment filter
+            if threat_trackIds[i] not in self.blacklist:
+                to_ret.append(i)
+            else:
+                # unreaching missile filter
+                # loop through all the assets and see if THIS
+                # target (index i) will reach any of the assets
+                for asset_pos in assetPos_lst:
+                    if utils.timeBtwnEnemyAndShip_with_tuples(threat_velos[i], threat_poss[i], asset_pos) < cur_time_remaining:
+                        to_ret.append(i)
+
+        return to_ret
+
+             
+        # for target in target_list:
+        #     if target is not None:
+        #         for ship in msg.assets:
+        #             time_to_target = utils.time_between_missile_and_ship(msg.Tracks[idx], ship)
+                
+        #             if target not in self.blacklist and cur_time_remaining > time_to_target:
+        #                 filtered_list[idx] = target
+        #                 idx += 1
         
-        return filtered_list
+        #return filtered_list
     
+    # def filter_targets_w_tuples(self, msg: StatePb, list_of_enemy_vel_tups: list, list_of_enemy_pos_tups: list, list_of_asset_pos: list):
+    #     max_time = 300
+    #     cur_time_remaining = max_time - msg.time
+        
+    #     tup_idx = 0
+    #     ret_idx = 0
+    #     filtered_list = [None]*30
+
+    #     while tup_idx < 30:
+    #         for ship in list_of_asset_pos:
+    #             time_to_target = utils.timeBtwnEnemyAndShip_with_tuples(list_of_enemy_vel_tups[tup_idx], list_of_enemy_pos_tups[tup_idx], ship)
+                
+    #             if msg.Tracks. not in self.blacklist and cur_time_remaining > time_to_target:
+    #                 filtered_list[ret_idx] = tup_idx
+    #                 break
+            
+    #         ret_idx += 1
+    #         tup_idx += 1
+
+    #     return filtered_list
 
     def populate_asset_threat_list(self, asset_poss: list[tuple[int]], threat_poss: list[tuple[int]],
                                     at_lst: list[list]):
+        for asset_idx in range(len(asset_poss)):
+            pass
         pass
 
 
