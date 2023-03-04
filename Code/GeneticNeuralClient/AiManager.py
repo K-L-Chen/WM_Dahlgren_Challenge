@@ -17,6 +17,7 @@ from GeneticAlgorithmClass import GeneticAlgorithm
 from GeneticAlgorithmClass import POPULATION_SIZE
 
 from pathlib import Path
+from argparse import NameSpace
 
 """
 This class contains the basic genetic algorithm. Its has the required functionality 
@@ -43,7 +44,7 @@ POPULATION_SAVE_DIR = (Path(__file__).parent / "population_history_Mar_3").absol
 class AiManager:
 
     # Constructor
-    def __init__(self, publisher: Publisher):
+    def __init__(self, publisher: Publisher, user_input: NameSpace):
         #print("Constructing AI Manager")
         self.ai_pub = publisher
         self.track_danger_levels = None
