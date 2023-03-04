@@ -38,31 +38,30 @@ Definitions/clarifications:
 Threat: an incoming enemy missile starting from a random locations. There are no enemy ships. 
 """
 
-# BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor
 # EPS_START is the starting value of epsilon
 # EPS_END is the final value of epsilon
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the AdamW optimizer
-BATCH_SIZE = 50
-GAMMA = 0.99
+GAMMA = 0.99 # 0.99
 EPS_START = 0.9
-EPS_END = 0.05
+EPS_END = 0
 EPS_DECAY = 1000
-TAU = 0.005
+TAU = 0.025
 LR = 1e-4
 WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 WEAPON_TO_IDX = {
     "Cannon_System": 0,
     "Chainshot_System": 1
 }
-THRESHOLD = 0.65
+THRESHOLD = 0.6
+BASE_REWARD = 0.0
 
 POLICY_FILE = "policy"
 TARGET_FILE = "target"
 
-FROM_FILE = True
+FROM_FILE = False
 class AiManager:
 
     # Constructor
@@ -95,6 +94,7 @@ class AiManager:
         self.steps_done = 0
         self.training = True
         self.start = dt.now()
+        self.current_score = 0
 
         self.currentTransition = None
 
@@ -144,19 +144,29 @@ class AiManager:
                     self.currentTransition[2] = state_vector
                     self.memory.push(self.currentTransition)
             
-            self.currentTransition = [state_vector, action_vector, None, torch.tensor([0.0], device=self.device, dtype=torch.float32)]
+            self.currentTransition = [state_vector, action_vector, None, torch.tensor([BASE_REWARD], device=self.device, dtype=torch.float32)]
 
+
+        
         if self.current_score != msg.score:
-            self.memory.backfill_batch(msg.score - self.current_score)
+            diff = msg.score - self.current_score
+            print(f"diff: {diff}")
+            if diff > 0: # larger than
+                self.memory.backfill_batch(diff * 10)
+            elif diff <= -200 and diff > -1000:
+                self.memory.backfill_batch(-diff * 10)
+            else:
+                self.memory.backfill_batch(diff * 0.1)
+
             if len(self.memory) > 2: 
                 self.rl_update()
-
-                target_net_state_dict = self.target_net.state_dict()
-                policy_net_state_dict = self.policy_net.state_dict()
-                for key in policy_net_state_dict:
-                    target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
-                self.target_net.load_state_dict(target_net_state_dict)
             self.current_score = msg.score
+
+        target_net_state_dict = self.target_net.state_dict()
+        policy_net_state_dict = self.policy_net.state_dict()
+        for key in policy_net_state_dict:
+            target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
+        self.target_net.load_state_dict(target_net_state_dict)
 
         
     # This method/message is used to notify of new scenarios/runs
@@ -210,11 +220,14 @@ class AiManager:
 
         TODO 
         """
+
+        # calculate epsilon threshold
         global steps_done
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * \
             math.exp(-1. * self.steps_done / EPS_DECAY) # calculate epsilon threshold
         self.steps_done += 1 # update steps done
+
 
         if len(msg.Tracks) > 0 and self.weapons_are_available(msg.assets):
             input_vector = np.zeros(210)
@@ -242,7 +255,6 @@ class AiManager:
                     
                     input_vector[6 * dship_idx:6 * (dship_idx + 1)] = [defense_ship.health, *list(ship_weaponType_to_ammo.values()), 
                                                                     defense_ship.PositionX, defense_ship.PositionY, int(defense_ship.isHVU)]
-                    # dship_idx += 1
 
 
             # forces a copy of the original keys
@@ -253,16 +265,9 @@ class AiManager:
                     del self.assetName_to_NNidx[asset_name]
 
 
-            # targets = []
-            # target_idx = 0
             for track in msg.Tracks:
                 # focus on only the enemy missiles
                 if track.ThreatRelationship == "Hostile" and track.TrackId not in self.blacklist:
-                    # # want to make one-to-one mapping between hostile TrackId and neural net idx
-                    # if target.TrackId not in self.threatTrackId_to_NNidx:
-                        # self.threatTrackId_to_NNidx[target.TrackId] = self.ttId_to_NNidx_counter
-                        # self.ttId_to_NNidx_counter += 1
-
                     try:
                         target_threatId = int(track.ThreatId.split("_")[-1])
                     # i.e. ValueError happens with the MIN_RAID Planner simulation case where
@@ -275,8 +280,6 @@ class AiManager:
 
                     input_vector[30 + 6 * target_threatId: 30 + 6 * (1 + target_threatId)] = [track.PositionX, track.PositionY, track.PositionZ, 
                                                                                     track.VelocityX, track.VelocityY, track.VelocityZ]
-                    # target_idx += 1
-                    # targets.append(target)
             
             input_vector = torch.tensor(input_vector, device=self.device, dtype=torch.float32)
             output_vector = input_vector.unsqueeze(0)
@@ -323,8 +326,6 @@ class AiManager:
 
                         # if assignedTarget in self.threatTrackId_to_NNidx and assignedShip in self.assetName_to_NNidx.values():
                         ship_action.TargetId = self.threatId_to_trackId[assignedTarget]
-                        # ship_action.TargetId = targets[assignedTarget].TrackId
-                        # ship_action.AssetName = msg.assets[assignedShip + 1].AssetName # + 1 to ignore REFERENCE_SHIP
 
                         nnIdx_to_assetName = {v:k for k, v in self.assetName_to_NNidx.items()}
                         # reject if asset is dead
@@ -386,12 +387,15 @@ class AiManager:
         ship_action: ShipActionPb = ShipActionPb()
 
         # random target selection
-        track_choice = random.choice(msg.Tracks)
-        while track_choice.ThreatRelationship != "Hostile":
-            track_choice = random.choice(msg.Tracks)
+        random_loc = random.randint(0, len(msg.Tracks)-1)
+        start = random_loc - 1
+        track_choice = msg.Tracks[random_loc]
+        while track_choice.ThreatRelationship != "Hostile" and random_loc != start:
+            track_choice = msg.Tracks[random_loc]
+            random_loc = (random_loc + 1) % len(msg.Tracks)
         ship_action.TargetId = track_choice.TrackId
 
-        if ship_action.TargetId in self.blacklist:
+        if ship_action.TargetId in self.blacklist or track_choice.ThreatRelationship != "Hostile":
             # print("random in blacklist")
             return [],  torch.tensor([[300]], device=self.device)
         else:
