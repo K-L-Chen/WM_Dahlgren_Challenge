@@ -294,7 +294,7 @@ class AiManager:
 
                 threat = curr_threats[i]
 
-                inner_threats = [i in curr_threats].remove[threat]
+                inner_threats = [i for i in curr_threats].remove[threat]
                 inner_target = None
                 
                 for a in range(ammo - shotsfired):
