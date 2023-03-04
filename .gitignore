@@ -13,6 +13,7 @@ TextFiles/DahlgrenChallengeLitRev.blg
 /Code/Planner/scripts
 /Code/Planner/Example_Clients/JavaClient
 /Code/Planner/Planner-3.0-jar-with-dependencies.jar
+/code/Planner_Environment/*
 /Code/*.txt
 *.pyc
 ~$Planner_Instruction_Manual.pptx
@@ -30,6 +31,7 @@ venv
 # local environment
 navy_wta_env
 navy_wta.tar*
+/navy_wta/*
 
 # VS Code
 .vscode
