@@ -101,6 +101,40 @@ class AiManager:
     
     #Strategy based on the most exhaustive and complete set of heuristics we can apply in the time limit
     def full_heuristic_strategy(self, msg:StatePb):
+        """
+        Pre-implementation notes:
+        
+        - pivot to accounting for things at a given time, or with a given time difference.
+          - the purpose of this is to allow us to make predictions about what will happen if we take certain actions
+          - thus: we get to look at things like secondary targets and changes in missile speed after maneuvers (what beat us in round 2)
+        
+        - we need a better value system than we had before
+          SPECIFICALLY, I think this means one of two things: 
+          - 1: keeping track of an expected final score.
+            - this may be impossibly slow unless we find a way to cull a TON of poential actions or use excessive simplification
+          - 2: keep track of the maximum loss to score after n missiles are fired (for the highest n we can do)
+            - one issue with this is that n must be high enough that SOME assets remain. 
+            - it will not work if the best score is close to the minimum score, or if we have too few total missiles to handle unseen approaching missiles afterwards.
+            - REMEMBER: we may not know if MORE missiles are outside of our view range
+
+        - The general idea is to trade speed for accuracy for as long as we possibly can, and then find someting fast to finish off with when there's no time left.
+          We can think of it as follows: we have ONE SECOND to find what the hell do do in the next second. 
+          - If we have 30 targets to pick from for a first attack, we have 29 for the second. 30*29=870 - so if were looping through those, we'd need to do the inside in under 1ms.
+          - I think this eliminates any possibiliy of doing brute force without some serious serious optimization.
+
+         
+        - Potential Strategies:
+          - 1: GPU
+            - I did some testing. I was able to do a billion simple operations that took 5 minutes on my CPU at home in well under a second on my 3080ti. We have 3090s in the laptops :) 
+            - I really do want to play with this more. I did some testing for fun, it's very easy to set up I think.
+            - we would need to design FOR this approach though, idk if we have time.
+          - 2: Cull as many missiles as possible in the first loop and do a detailed search of the remaining choices
+            - basically, the idea is to find out which missiles are the worst to shoot until we get to a space not much larger than our avaliable missiles
+            - we're looking for the WORST missiles to shoot, not the best ones, because those should be ones that lack range to do much impact
+            - this may be virually optimal if we have very few initial missiles and thee isn't something SUPER sneaky
+
+
+        """
 
         #TODO: everything lol
 
