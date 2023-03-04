@@ -61,7 +61,7 @@ BASE_REWARD = 0.0
 POLICY_FILE = "policy"
 TARGET_FILE = "target"
 
-FROM_FILE = False
+FROM_FILE = True
 class AiManager:
 
     # Constructor
@@ -150,13 +150,14 @@ class AiManager:
         
         if self.current_score != msg.score:
             diff = msg.score - self.current_score
-            print(f"diff: {diff}")
-            if diff > 0: # larger than
-                self.memory.backfill_batch(diff * 10)
-            elif diff <= -200 and diff > -1000:
-                self.memory.backfill_batch(-diff * 10)
-            else:
-                self.memory.backfill_batch(diff * 0.1)
+            self.memory.backfill_batch(diff)
+            # print(f"diff: {diff}")
+            # if diff > 0: # larger than
+            #     self.memory.backfill_batch(diff * 10)
+            # elif diff <= -200 and diff > -1000:
+            #     self.memory.backfill_batch(-diff * 10)
+            # else:
+            #     self.memory.backfill_batch(diff * 0.1)
 
             if len(self.memory) > 2: 
                 self.rl_update()

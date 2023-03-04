@@ -8,6 +8,8 @@ from publisher import Publisher
 import random
 import utils
 
+from datetime import datetime as dt
+
 # This class is the center of action for this example client.  Its has the required functionality 
 # to receive data from the Planner and send actions back.  Developed AIs can be written directly in here or
 # this class could be used toolbox that a more complex AI classes reference.
@@ -88,8 +90,9 @@ class AiManager:
         #1 - same as low_resources in GreedyClient, only here because I had no reason to remove it
         switch = 2
 
-
-        if switch == 2:
+        if switch == 3:
+            output_message.actions.extend(self.testing_strategy(msg))
+        elif switch == 2:
             output_message.actions.extend(self.full_heuristic_strategy(msg))
         elif switch == 1:
             output_message.actions.extend(self.low_resources_strategy(msg))
@@ -98,6 +101,51 @@ class AiManager:
 
         return output_message
 
+    def testing_strategy(self, msg:StatePb):
+        start = dt.now()
+        # maps the index to the asset name
+        #how the actual hell are we getting the ID?????? JOSEPH: this is how
+        #GET ID BY ITS POSITION IN INITIAL INPUT
+        asset_names = [None for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
+        asset_positions = [None] * 5  #len 5, bunch of tuple locations(x, y, z)
+        asset_weapon_info = [None] * 5 # bunch of tuples (name, quantity, WeaponState)
+        # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
+        # self.populate_asset_names(assets)
+        self.populate_asset_info(msg, asset_names, asset_positions, asset_weapon_info)
+        #USE self.update_assets_trakcs(msg)
+
+
+        # threats = [None] * 30 #unordered list of missiles, each entry is an int correstponding to the number of the missile
+
+        # threat_info = [None] * 30 #len 30
+
+        targetIds = [None] * 30 #len 30
+        threat_trackIds = [None] * 30 # for our action outputPb
+        threat_positions = [None] * 30
+        threat_velocities = [None] * 30
+        self.populate_threat_info(msg, targetIds, threat_trackIds, threat_positions, threat_velocities)
+        # self.populate_threatIds(msg, targetIds, threatIds_to_trackIds)
+
+        threat_secondaries = [None] * 5 #len 5
+
+        threat_filtered = self.filter_targets(msg, threat_trackIds) #may/maynot need this
+        
+        #STUFF I NEED!!!!!!!!!!!!!!!!!!!
+
+        # used to evaluate when something needs to go to its secondary target
+        # list of list of weapons that are targeting the asset for each respective index?
+        #NEEDS TO BE POPULATED WITH THE MISSILES FOR EACH ASSET THAT HAVE IT AS PRIMARY TARGET (asset identified by index)
+        asset_threat_list = [None] * 5
+
+
+        ammo = None
+
+        delta = dt.now() - start
+        print(f"Initialization time: {delta}")
+
+        # utils.time_between_missile_and_ship()
+
+        return []
     
     #Strategy based on the most exhaustive and complete set of heuristics we can apply in the time limit
     def full_heuristic_strategy(self, msg:StatePb):
@@ -146,6 +194,8 @@ class AiManager:
         
         2ndary TODO: make a version of the secondary target that works with Nick's existing algorithm
         """
+
+        start = dt.now()
         # maps the index to the asset name
         #how the actual hell are we getting the ID?????? JOSEPH: this is how
         #GET ID BY ITS POSITION IN INITIAL INPUT
@@ -185,6 +235,9 @@ class AiManager:
 
         ammo = utils.total_remaining_ammo(asset_weapon_info)
         final_weapon = None #utils.
+
+        delta = dt.now() - start
+        print(f"Initialization time: {delta}")
 
 
         '''
@@ -298,7 +351,6 @@ class AiManager:
                 
 
                     
-                    
 
 
     # def populate_asset_names(self, msg: StatePb, init_lst: list):
@@ -318,7 +370,7 @@ class AiManager:
                 
                 for w_data in asset.weapons:
                     weapon_info[i].append((w_data.SystemName, w_data.Quantity, w_data.WeaponState))
-            i += 1
+                i += 1
                 
 
 
@@ -330,7 +382,7 @@ class AiManager:
         i = 0
         for track in msg.Tracks:
             if track.ThreatRelationship == "Hostile":
-                target_ids[i] = track.TargetId
+                target_ids[i] = track.ThreatId
                 threat_trackIds[i] = track.TrackId
                 threat_poss[i] = (track.PositionX, track.PositionY, track.PositionZ)
                 threat_velos[i] = (track.VelocityX, track.VelocityY, track.VelocityZ)
@@ -358,14 +410,12 @@ class AiManager:
         idx = 0
         filtered_list = [None] * 30
         for target in target_list:
-            if(target == None):
-                break
-
-            time_to_target = utils.distance_between_missile_and_ship(msg.tracks[idx])
+            if target is not None:
+                time_to_target = utils.distance_between_missile_and_ship(msg.Tracks[target])
             
-            if target not in self.blacklist and cur_time_remaining > time_to_target:
-                filtered_list[idx] = target
-                idx += 1
+                if target not in self.blacklist and cur_time_remaining > time_to_target:
+                    filtered_list[idx] = target
+                    idx += 1
         
         return filtered_list
     
