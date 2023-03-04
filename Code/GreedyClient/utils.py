@@ -98,14 +98,19 @@ def expected_value(missile : _TRACKPB, target_dict, missile_target_dict):
     target = missile_target_dict[missile.TrackId] #What ship is being targeted
     m_with_same_t = len(target_dict[target.AssetName]) #How many missiles are targeting this target
     distance_between_missile_and_target = distance_between_missile_and_ship(missile,target)
-    if target.isHVU and m_with_same_t >= 4:
-        return 9000 + 10 / distance_between_missile_and_target
+    ev = 10 / distance_between_missile_and_target
+    if target.isHVU and m_with_same_t >= target.health:
+        ev = ev + 9000
     elif target.isHVU:
-        return 2000 + 10 / distance_between_missile_and_target
-    elif m_with_same_t >= 4:
-        return 5000 + 10 / distance_between_missile_and_target
+        ev = ev + 2000
+    elif m_with_same_t >= target.health:
+        ev = ev + 5000
     else:
-        return 1000 + 10 / distance_between_missile_and_target
+        ev = ev + 1000
+    secondary_target = find_secondary_target(missile, list(target_dict.keys()))
+    if secondary_target.isHVU:
+        ev = ev + 4500
+    return ev
 
 
 #Arguments: the most targeted ship and the list of missiles targeting it
@@ -143,3 +148,29 @@ def find_closest_ready_asset(most_danger_threat : _TRACKPB, unassigned_assets : 
 
 
 
+#Arguments: the missile to be checked, a list of assets
+#Returns the SECONDARY target of this missile (if it redirects)
+#Returns None if there are no secondary targets possible
+def find_secondary_target(missile: _TRACKPB, asset_list : list[_ASSETPB]):
+    if len(asset_list) < 2:
+        return None
+    primary_target = find_primary_target(missile,asset_list)
+    secondary_target = None
+    cur_dist = 1e10
+    for asset in asset_list:
+        if asset != primary_target:
+            dist_btwn_ships = distance(primary_target.PositionX,primary_target.PositionY,0,asset.PositionX,asset.PositionY,0)
+            if dist_btwn_ships < cur_dist and dist_btwn_ships != 0:
+                cur_dist = dist_btwn_ships
+                secondary_target = asset
+    return secondary_target
+
+#Arguments: the missile to be checked, a list of assets
+#Returns the PRIMARY target of this missile (if it redirects)
+def find_primary_target(missile: _TRACKPB, asset_list : list[_ASSETPB]):
+    closest_asset = asset_list[0]
+    dist = distance_between_missile_and_ship(missile, asset_list[0])
+    for asset in asset_list:
+        if distance_between_missile_and_ship(missile, asset) < dist:
+            closest_asset = asset
+    return closest_asset
