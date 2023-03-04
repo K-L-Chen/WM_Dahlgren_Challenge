@@ -9,11 +9,11 @@ def distance(x1, y1, z1, x2, y2, z2):
 
 #Finds WHEN a given missile will reach its SECONDARY target if it exists
 #Returns a number of seconds in the future
-def time_to_reach_secondary(missile: _TRACKPB, asset_list : list[_ASSETPB] ):
+def time_to_reach_secondary(missile: _TRACKPB, targeting_missiles, asset_list : list[_ASSETPB] ):
     #Calculate WHEN the primary target will be destroyed
     primary_target = find_primary_target(missile,asset_list)
     #time to destruction
-    ttd = "PLACEHOLDER"
+    ttd = when_ship_will_be_destroyed(primary_target,targeting_missiles)
     #Estimate WHERE our missile will be at this time
     est_x = missile.PositionX + missile.VelocityX * ttd
     est_y = missile.PositionY + missile.VelocityY * ttd
@@ -28,7 +28,11 @@ def time_to_reach_secondary(missile: _TRACKPB, asset_list : list[_ASSETPB] ):
 #ship is the ship that will be destroyed
 #targeting_missiles is a list of the missiles that are targeting a given ship
 def when_ship_will_be_destroyed(ship, targeting_missiles):
-    targeting_missiles.sort(reverse = True, key=time_between_missile_and_ship)
+    def ttd(tm):
+        return time_between_missile_and_ship(tm,ship)
+    targeting_missiles.sort(reverse = True, key=ttd)
+    killing_missile = targeting_missiles[ship.health - 1]
+    return time_between_missile_and_ship(killing_missile,ship)
     
 #Returns the TOTAL remaining ammo for our entire fleet
 #Argument: a list of our assets
@@ -171,10 +175,3 @@ def find_closest_ready_asset(most_danger_threat : _TRACKPB, unassigned_assets : 
 
     return s_ass
 
-
-
-def enemy_can_reach_secondary_targets(self): 
-    # ??? TODO: Nick should explain this more. 
-    pass
-
-def

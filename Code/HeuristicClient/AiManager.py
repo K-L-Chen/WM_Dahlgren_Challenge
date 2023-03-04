@@ -54,7 +54,7 @@ class AiManager:
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg:ScenarioInitializedNotificationPb):
         print("Scenario run: " + str(msg.sessionId))
-        self.logfile = open('log{}_simple.txt'.format(msg.sessionId), 'w')
+        #self.logfile = open('log{}_simple.txt'.format(msg.sessionId), 'w')
 
         
     # This method/message is used to nofify that a scenario/run has ended
@@ -62,7 +62,7 @@ class AiManager:
         self.blacklist = set()
         if msg.score != 10000:
             print("Ended Run: " + str(msg.sessionId) + " with score: " + str(msg.score))
-        self.logfile.close()
+        #self.logfile.close()
 
 
     def createActions(self, msg:StatePb):
@@ -149,25 +149,40 @@ class AiManager:
         # maps the index to the asset name
         #how the actual hell are we getting the ID?????? JOSEPH: this is how
         #GET ID BY ITS POSITION IN INITIAL INPUT
-        assets = ['' for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
+        asset_names = [None for _ in range(5)] #unordered list of assets (integer entries, correspond to elements in asset_info, asset_threats)
+        asset_positions = [None] * 5  #len 5, bunch of tuple locations(x, y, z)
+        asset_weapon_info = [None] * 5 # bunch of tuples (name, quantity, WeaponState)
+        # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
+        # self.populate_asset_names(assets)
+        self.populate_asset_info(msg, asset_names, asset_positions, asset_weapon_info)
         #USE self.update_assets_trakcs(msg)
 
-        # asset_names = [asset.AssetName for asset in msg.assets if 'REFERENCE' not in asset.AssetName]          
-        self.populate_asset_names(assets)
+
+        # threats = [None] * 30 #unordered list of missiles, each entry is an int correstponding to the number of the missile
+
+        # threat_info = [None] * 30 #len 30
 
 
-        threats = [None] * 30 #unordered list of missiles, each entry is an int correstponding to the number of the missile
-
-        threat_info = [None] * 30 #len 30
-        asset_info = [None] * 5  #len 5, bunch of tuples
-
-        threat_targets = [None] * 30 #len 30
-        threatIds_to_trackIds = [None] * 30 # for our action outputPb
-        self.populate_threat_targets(threat_targets, threatIds_to_trackIds)
+        targetIds = [None] * 30 #len 30
+        threat_trackIds = [None] * 30 # for our action outputPb
+        threat_positions = [None] * 30
+        threat_velocities = [None] * 30
+        self.populate_threat_info(msg, targetIds, threat_trackIds, threat_positions, threat_velocities)
+        # self.populate_threatIds(msg, targetIds, threatIds_to_trackIds)
 
         threat_secondaries = [None] * 5 #len 5
 
-        threat_filtered = [] #may/maynot need this
+        threat_filtered = self.filter_targets(msg, threat_trackIds) #may/maynot need this
+        
+        #STUFF I NEED!!!!!!!!!!!!!!!!!!!
+
+        # used to evaluate when something needs to go to its secondary target
+        # list of list of weapons that are targeting the asset for each respective index?
+        #NEEDS TO BE POPULATED WITH THE MISSILES FOR EACH ASSET THAT HAVE IT AS PRIMARY TARGET (asset identified by index)
+        asset_threat_list = [None] * 5
+
+
+        ammo = None
 
 
         '''
@@ -203,25 +218,79 @@ class AiManager:
 
         '''
 
-        n = 1
+        n = 1 # depth of search
 
-        for i in range(n):
+        curr_threats = [i in threat_filtered]
+        future_score = 0
+        shotsfired = 0
 
-            pass
+        for a in range(n): #a in range(threat_filtered) for ALL missiles considered
+            curr_score = 0
+            
+            curr_target = None
+
+            #inner pick-best-target
+            for i in range(len(curr_threats)):
+
+                threat = curr_threats[i]
+
+                inner_threats = [i in curr_threats].remove[threat]
+                
+                for i in range(ammo-shotsfired):
+                    pass
+                
+                #NOTE: PSEUDOCODE FOR FINAL STAGE EXPECTED VALUE GREEDY
+                #   if there are missiles with HVU as target:
+                #       remove the one that will hit HVU first
+                #   elif there are missiles with HVU as 2ndary target AND primary target has more missiles inbound than HP:
+                #       remove the one that will hit 2ndary target first
+                #   else:
+                #       remove missile that hits first
+
+                total_score = 0
+                
+                #TODO keep track of final state
+
+                for j in range(len(inner_threats)):
+
+                    weapon_score = 0 #placeholder, see comments below
+
+                    #sort inner threats
+
+                    #add damage of the first target that hits, remove it from 
+
+                    total_score + weapon_score
+                    
+            
+
+                
+
+                    
+                    
 
 
-    def enemy_can_reach_secondary_targets(self): 
-        # ??? TODO: Nick should explain this more. 
-        pass
-
-    def populate_asset_names(self, msg: StatePb, init_lst: list):
+    # def populate_asset_names(self, msg: StatePb, init_lst: list):
+    #     i = 0
+    #     for asset in msg.assets:
+    #         if 'REFERENCE' not in asset.AssetName:
+    #             init_lst[i] = asset.AssetName
+    #             i += 1
+    
+    def populate_asset_info(self, msg, names, positions, weapon_info):
         i = 0
         for asset in msg.assets:
             if 'REFERENCE' not in asset.AssetName:
-                init_lst[i] = asset.AssetName
-                i += 1
+                names[i] = asset.AssetName
+                positions[i] = (asset.PositionX, asset.PositionY, asset.PositionZ)
+                weapon_info[i] = []
+                
+                for w_data in asset.weapons:
+                    weapon_info[i].append((w_data.SystemName, w_data.Quantity, w_data.WeaponState))
+            i += 1
+                
 
-    def populate_threat_targets(self, msg: StatePb, init_lst1: list, init_lst2):
+
+    def populate_threat_info(msg: StatePb, target_ids, threat_trackIds, threat_poss, threat_velos):
         """
         Get mappings from our programmatic threat index to its actual
         threatId and trackId through two different lists respectively
@@ -229,17 +298,42 @@ class AiManager:
         i = 0
         for track in msg.Tracks:
             if track.ThreatRelationship == "Hostile":
-                 init_lst1[i] = track.ThreatId
-                 init_lst2[i] = track.TrackId
-                 i += 1
+                target_ids[i] = track.TargetId
+                threat_trackIds[i] = track.TrackId
+                threat_poss[i] = (track.PositionX, track.PositionY, track.PositionZ)
+                threat_velos[i] = (track.VelocityX, track.VelocityY, track.VelocityZ)
+                i += 1
     
     # def populate_threatIds_to_trackIds(self, msg: StatePb, init_lst: list):
     #     i = 0
     #     for track in msg.Tracks:
     #         init_lst[idx] = ((msg.Tracks[idx]).TrackID)
-    
-    
-    def filter_targets(self, target_list: list):
+
+    def filter_targets(self, msg: StatePb, target_list: list):
+        """
+        Produces the final target space that we will work on.
+        SHOVE MISSILES THAT CANNOT HIT ASSETS IN TIME TO BLACKLIST
+        
+        @param target_list: to be filtered. Is a list of length 30
+        
+        @return filtered_list
+        """
+        #300 seconds is max amount of time to do everything
+        max_time = 300
+        #get current time
+        cur_time_remaining = max_time - msg.time
+        
+        idx = 0
+        filtered_list = [None] * 30
+        for target in target_list:
+            time_to_target = utils.distance_between_missile_and_ship(msg.tracks[target])
+            
+            if target not in self.blacklist and cur_time_remaining > time_to_target:
+                filtered_list[idx] = target
+                idx += 1
+        
+        return filtered_list
+
         
     
     def simple_greedy_strategy(self, msg:StatePb):
@@ -483,7 +577,7 @@ class AiManager:
             if weapon.Quantity > 0: return True
         return False
 
-
+    """
     def update_assets_tracks(self, state:StatePb, asset_list: list, track_list: list):
         '''
         take in StatePb to return a list of AssetNames, TrackIDs
@@ -510,8 +604,9 @@ class AiManager:
             track_list[idx] = ((state.tracks[idx]).TrackID)
         
         #return tempAssets, tempTracks
+    """
 
-    
+
     # Function to print state information and provide syntax examples for accessing protobuf messags
     def printStateInfo(self, msg:StatePb):
         print("Time: " + str(msg.time))
@@ -547,27 +642,28 @@ class AiManager:
         print("**********************************")
 
 
-    def saveStateInfoToFile(self, msg: StatePb):
-        self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
+    # def saveStateInfoToFile(self, msg: StatePb):
+    #     self.logfile.write("Time: {}\nScore: {}\n------------------\nASSETS:\n".format(msg.time, msg.score))
         
-        tempSIDHP = {}
-        tempMissiles = []
+    #     tempSIDHP = {}
+    #     tempMissiles = []
 
-        for asset in msg.assets:
-            self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
-            self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
-            tempSIDHP[asset.AssetName] = asset.health
+    #     for asset in msg.assets:
+    #         self.logfile.write("AssetName: {}\nHVU: {}\nHealth: {}\nPosX: {}\n".format(asset.AssetName, asset.isHVU, asset.health, asset.PositionX))
+    #         self.logfile.write("PosY: {}\nPosZ: {}\nLong-Lat: {}\nWeapons: {}\n\n".format(asset.PositionY, asset.PositionZ, asset.Lle, asset.weapons))
+    #         tempSIDHP[asset.AssetName] = asset.health
 
-        self.logfile.write("------------------\nTRACKS:\n")
+    #     self.logfile.write("------------------\nTRACKS:\n")
 
-        for track in msg.Tracks:
-            self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
-            self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
-            self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
+    #     for track in msg.Tracks:
+    #         self.logfile.write("Track ID: {}\nThreat ID: {}\nThreat Relationship: {}\nLong-Lat: {}\n".format(track.TrackId, track.ThreatId, track.ThreatRelationship, track.Lle))
+    #         self.logfile.write("PosX: {}\nPosY: {}\nPosZ: {}\n".format(track.PositionX, track.PositionY, track.PositionZ))
+    #         self.logfile.write("VelX: {}\nVelY: {}\nVelZ: {}\n\n".format(track.VelocityX, track.VelocityY, track.VelocityZ))
             
-            if track.ThreatRelationship == "Hostile":
-                tempMissiles.append(track)
-
+    #         if track.ThreatRelationship == "Hostile":
+    #             tempMissiles.append(track)
+    
+                
 
         '''if len(list(tempSIDHP.values())) > len(list(self.ship_idhp.values())):
             self.logfile.write("[READING NUMBER OF SHIPS, MISSILES...]")
@@ -591,4 +687,4 @@ class AiManager:
             self.ship_idhp = tempSIDHP
             self.active_missiles = tempMissiles'''
         
-        self.logfile.write("***************************\n\n")
+        # self.logfile.write("***************************\n\n")
