@@ -1,4 +1,4 @@
-# W&M Dahlgren Innovations Challenge
+# W&M Dahlgren Innovations Challenge - 3rd Place Overall
 
 ## Members:
 Joseph S. Lee  
