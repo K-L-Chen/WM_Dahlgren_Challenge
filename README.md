@@ -1,4 +1,4 @@
-# W&M Dahlgren Innovations Challenge - 3rd Place Overall
+# W&M Dahlgren Innovations Challenge - [3rd Place Overall](https://www.facebook.com/NSWCDahlgrenDivision/)
 
 ## Members:
 Joseph S. Lee  
