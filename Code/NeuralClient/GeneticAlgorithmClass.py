@@ -101,7 +101,7 @@ class GeneticAlgorithm:
 
                 # if mutation rate chance occurs
                 if random.random() < MUTATION_RATE:
-                    # perturbate between [0, MAX_MUTATION_PERCENT] for each child's param_name, additive or subtractive
+                    # perturbate between [0, MAX_MUTATION_PERCENT] for each child's param_name parameters, additive or subtractive
                     # (i.e. perturbate betweeen 0 to 40% for each child's bias of this fully-connected layer)
                     mutation_val_c1 = random.uniform(-MUTATION_RATE, MUTATION_RATE)
                     mutataion_val_c2 = random.uniform(-MUTATION_RATE, MUTATION_RATE)
