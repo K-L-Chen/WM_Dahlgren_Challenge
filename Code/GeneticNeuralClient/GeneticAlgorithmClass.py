@@ -8,12 +8,12 @@ import torch.nn
 import operator
 
 #POPULATION_SAVE_DIR  "POPULATION_SIZE - CLONES must be divisible by 3!
-# POPULATION_SIZE = 100 # Number of neural nets in each generation
-POPULATION_SIZE = 50
+POPULATION_SIZE = 100 # Number of neural nets in each generation
+# POPULATION_SIZE = 50
 # POPULATION_SIZE = 10
-CLONES = 8 # Number of surviving/cloned neural nets that are the best per generation
+CLONES = 10 # Number of surviving/cloned neural nets that are the best per generation
 # CLONES = 4
-PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) // 3
+NUM_PAIRINGS_PER_GENERATION = (POPULATION_SIZE - CLONES) // 3
 
 assert (POPULATION_SIZE - CLONES) % 3 == 0
 
@@ -21,27 +21,34 @@ import math
 # ensure that there are enough number of possible pairings
 # to refill the entire population again to its original
 # population size
-assert math.comb(CLONES, 2) >= PAIRINGS_PER_GENERATION
+assert math.comb(CLONES, 2) >= NUM_PAIRINGS_PER_GENERATION
 
 MAX_MUTATION_PERCENT = 1.0 # Can change a weight or a bias by up to MUTATION_SIZE of its current value
-MUTATION_RANGE = 2
-MUTATION_RATE = 3.0 # Odds that any given weight or bias will mutate
+# MUTATION_RANGE = 2
+MUTATION_RATE = 0.33 # Odds that any given weight or bias will mutate
 # PARENT_PERCENTAGE = 0.2 # how much of the population we want to sample from for parents to breed
-SHIFT_SIZE = 0.7 # When breeding, how much should the resulting (higher = more) children be shifted to their parents
+SHIFT_SIZE = 0.6 # When breeding, how much should the resulting (higher = more) children be shifted to their parents
 
 class GeneticAlgorithm:
     
-    def __init__(self, population: list[NeuralNet] = None):
+    def __init__(self, population_fp = None):
         """
         Parameters
         -------
-        population - a list of neural nets, either pre-defined from training checkpoints
+        population - a list of neural nets loaded as .pt file, either pre-defined from training checkpoints
         or initialized as None if we're just starting off training
         """
         self.population = [NeuralNet() for _ in range(POPULATION_SIZE)]
-        if population:
-            self.population = population
-            assert len(population) == POPULATION_SIZE
+
+        if population_fp:
+            self.set_population(population_fp)
+            assert len(self.population) == POPULATION_SIZE
+
+        print("Initializing genetic algorithm")
+        print(f"POPULATION_SIZE:{POPULATION_SIZE}\nCLONES:{CLONES}\nNUM_PAIRINGS_PER_GENERATION:{NUM_PAIRINGS_PER_GENERATION}")
+        print('\n')
+        print(f'MAX_MUTATION_PERCENT:{MAX_MUTATION_PERCENT}\nMUTATION_RATE:{MUTATION_RATE}\nPARENT_WEIGHT:{SHIFT_SIZE}')
+
     
     
     def cull_and_rebuild(self):
@@ -62,7 +69,7 @@ class GeneticAlgorithm:
     #Output: a list of tuples containing two parents
     def generate_pairings(self, parents):
         pairings = itertools.combinations(parents, 2)
-        return tuple(pairings)[0:PAIRINGS_PER_GENERATION]
+        return tuple(pairings)[0:NUM_PAIRINGS_PER_GENERATION]
     
     #Inputs: two parents
     #Outputs: tuple of three children:
@@ -95,7 +102,7 @@ class GeneticAlgorithm:
                 # average of nn1 and nn2 params
                 dict_params_c1[param_name].data.copy_(0.5 * (param_name_params.data + dict_params_c1[param_name].data))
                 # weighted average towards nn1
-                dict_params_c2[param_name].data.copy_(SHIFT_SIZE*param_name_params.data + (1- SHIFT_SIZE)*dict_params_c2[param_name].data)
+                dict_params_c2[param_name].data.copy_(SHIFT_SIZE*param_name_params.data + (1 - SHIFT_SIZE)*dict_params_c2[param_name].data)
                 # weighted average towards nn2
                 dict_params_c3[param_name].data.copy_((1 - SHIFT_SIZE)*param_name_params.data + (SHIFT_SIZE)*dict_params_c3[param_name].data)
 

@@ -17,7 +17,7 @@ from GeneticAlgorithmClass import GeneticAlgorithm
 from GeneticAlgorithmClass import POPULATION_SIZE
 
 from pathlib import Path
-from argparse import NameSpace
+# from argparse import NameSpace
 
 """
 This class contains the basic genetic algorithm. Its has the required functionality 
@@ -39,21 +39,28 @@ WEAPON_TYPES = ["Cannon_System", "Chainshot_System"]
 GENERATION_SIZE = POPULATION_SIZE
 FITNESS_SCALE = 1e-5
 
-POPULATION_SAVE_DIR = (Path(__file__).parent / "population_history_Mar_3").absolute()
+# POPULATION_SAVE_DIR = (Path(__file__).parent / "population_history_Mar_3").absolute()
 
 class AiManager:
 
     # Constructor
-    def __init__(self, publisher: Publisher, user_input: NameSpace):
+    def __init__(self, publisher: Publisher, user_input):
+        """user_input is the argparse objects containing all user input args"""
         #print("Constructing AI Manager")
         self.ai_pub = publisher
         self.track_danger_levels = None
         self.blacklist = set()
         self.simulation_count = 0
-        self.generations_passed = 0
+        self.generations_passed = user_input.curr_gen_iter if user_input.curr_gen_iter else 0
+        self.save_dir = Path(user_input.save_dir).absolute()
 
         # initialize GeneticAlgorithm
-        self.GA = GeneticAlgorithm()
+        self.GA = None
+        if user_input.curr_gen_iter:
+            self.GA = GeneticAlgorithm(population_fp=Path(user_input.save_dir).absolute() / \
+                                       f'pop_gen{self.generations_passed - 1}.pt')
+        else:
+            self.GA = GeneticAlgorithm()
         self.currentNN = 0 # index of position in list of NeuralNets in GeneticAlgorithm
 
         # helper mapper for input of neural net in order for it to know
@@ -120,7 +127,8 @@ class AiManager:
         self.currentNN += 1
         # empty blacklist
         if self.currentNN == GENERATION_SIZE:
-            self.save_population(POPULATION_SAVE_DIR / f"pop_gen{self.generations_passed}.pt")
+            # self.save_population(POPULATION_SAVE_DIR / f"pop_gen{self.generations_passed}.pt")
+            self.save_population(self.save_dir / f'pop_gen{self.generations_passed}.pt')
             self.GA.cull_and_rebuild() 
             self.generations_passed = self.generations_passed + 1
             # print("Generations Passed: " + str(self.generations_passed))
