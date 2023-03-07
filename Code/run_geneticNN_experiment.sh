@@ -1,0 +1,1 @@
+nohup cmd.exe /c ".\navy_wta_env\Scripts\activate.bat && python .\GeneticNeuralClient\main.py --save_dir .\GeneticNeuralClient\pop_gens --curr_gen_iter 1" &

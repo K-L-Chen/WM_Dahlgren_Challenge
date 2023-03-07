@@ -41,6 +41,7 @@ class GeneticAlgorithm:
         self.population = [NeuralNet() for _ in range(POPULATION_SIZE)]
 
         if population_fp:
+            print(f"Loading population file from {population_fp}")
             self.set_population(population_fp)
             assert len(self.population) == POPULATION_SIZE
 

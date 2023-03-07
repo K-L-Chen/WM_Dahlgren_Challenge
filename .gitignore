@@ -40,3 +40,6 @@ WilliamAndMary.zip
 *.pt
 
 log*.txt
+
+# nohup
+*.out
