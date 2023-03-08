@@ -1,5 +1,7 @@
 """
-A NeuralNet object takes in all the information from one StatePb message and decides on a weapon-target assignment
+Contains the NeuralNet Class 
+
+Each NeuralNet object takes in all the information from one StatePb message and decides on a weapon-target assignment
 based on meeting above a certain threshold. In other words, it decides on the engagement strategy
 per timestep.
 """

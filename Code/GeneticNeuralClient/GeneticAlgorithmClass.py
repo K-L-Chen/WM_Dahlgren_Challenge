@@ -1,7 +1,7 @@
 """
 Contains our GeneticAlgorithm
 """
-from NeuralNetClass import NeuralNet
+from NeuralNetModule import NeuralNet
 import random 
 import itertools
 import torch.nn
