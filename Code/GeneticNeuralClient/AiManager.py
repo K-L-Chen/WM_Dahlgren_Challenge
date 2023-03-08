@@ -68,7 +68,7 @@ class AiManager:
         # by default, you may not be able to get the 
         # same ordering of assets each time you loop in msg.assets
         self.assetName_to_NNidx: dict[str, int] = {}
-        # self.setAssetName_to_NNidx = True 
+        self.setAssetName_to_NNidx = True 
 
         # we need the trackId of the enemy missile for the output
         self.threatId_to_trackId: dict[int, int] = {}
@@ -94,8 +94,10 @@ class AiManager:
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
         self.simulation_count += 1
-        # self.setAssetName_to_NNidx = True
-        self.populate_assetName_to_NNidx(msg.assets)
+        self.setAssetName_to_NNidx = True
+
+        # this msg does not contain the assets!
+        # self.populate_assetName_to_NNidx(msg.assets)
 
         # self.logfile = open('log{}_neural.txt'.format(msg.sessionId),'w')
         pass
@@ -122,7 +124,7 @@ class AiManager:
 
         self.blacklist = set()
         
-        self.currentNN += 1
+        # self.currentNN += 1
         # empty blacklist
         if self.currentNN == GENERATION_SIZE:
             # self.save_population(POPULATION_SAVE_DIR / f"pop_gen{self.generations_passed}.pt")
@@ -157,9 +159,9 @@ class AiManager:
         -------
         output_message: OutputPb with actions: list[ShipAction] - list of A.I. actions from asset(s)
         """
-        # if self.setAssetName_to_NNidx:
-        #     self.populate_assetName_to_NNidx(msg.assets)
-        #     self.setAssetName_to_NNidx = False
+        if self.setAssetName_to_NNidx:
+            self.populate_assetName_to_NNidx(msg.assets)
+            self.setAssetName_to_NNidx = False
 
         output_message: OutputPb = OutputPb()
 

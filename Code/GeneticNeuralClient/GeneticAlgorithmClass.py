@@ -1,6 +1,7 @@
 """
 Contains our GeneticAlgorithm
 """
+import NeuralNetModule
 from NeuralNetModule import NeuralNet
 import random 
 import itertools
@@ -135,6 +136,9 @@ class GeneticAlgorithm:
 
     #Sets an entirely new population. Only called when loading an old population from a file.
     def set_population(self, population_fp):
+        import sys
+        # needed since I had previously called the file "NeuralNetClass.py"
+        sys.modules["NeuralNetClass"] = NeuralNetModule
         self.population = torch.load(population_fp)
 
     def save_population(self, population_fp):
