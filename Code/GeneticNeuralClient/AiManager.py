@@ -68,7 +68,7 @@ class AiManager:
         # by default, you may not be able to get the 
         # same ordering of assets each time you loop in msg.assets
         self.assetName_to_NNidx: dict[str, int] = {}
-        self.setAssetName_to_NNidx = True 
+        # self.setAssetName_to_NNidx = True 
 
         # we need the trackId of the enemy missile for the output
         self.threatId_to_trackId: dict[int, int] = {}
@@ -93,11 +93,9 @@ class AiManager:
 
     # This method/message is used to notify of new scenarios/runs
     def receiveScenarioInitializedNotificationPb(self, msg: ScenarioInitializedNotificationPb):
-        """
-        Each scenario should have its own GeneticAlgorithm. 
-        """
         self.simulation_count += 1
-        self.setAssetName_to_NNidx = True
+        # self.setAssetName_to_NNidx = True
+        self.populate_assetName_to_NNidx(msg.assets)
 
         # self.logfile = open('log{}_neural.txt'.format(msg.sessionId),'w')
         pass
@@ -136,7 +134,7 @@ class AiManager:
         else:
             self.GA.population[self.currentNN].set_fitness(self.GA.population[self.currentNN].get_fitness() + FITNESS_SCALE * msg.score)
 
-        self.setAssetName_to_NNidx = True 
+        # self.setAssetName_to_NNidx = True 
         self.assetName_to_NNidx: dict[str, int] = {}
         self.threatId_to_trackId: dict[int, int] = {}
         # self.threatTrackId_to_NNidx: OrderedDict = OrderedDict()
@@ -159,9 +157,9 @@ class AiManager:
         -------
         output_message: OutputPb with actions: list[ShipAction] - list of A.I. actions from asset(s)
         """
-        if self.setAssetName_to_NNidx:
-            self.populate_assetName_to_NNidx(msg.assets)
-            self.setAssetName_to_NNidx = False
+        # if self.setAssetName_to_NNidx:
+        #     self.populate_assetName_to_NNidx(msg.assets)
+        #     self.setAssetName_to_NNidx = False
 
         output_message: OutputPb = OutputPb()
 
@@ -237,9 +235,10 @@ class AiManager:
                 # dship_idx += 1
 
 
+        # remove the assets that are now gone
+
         # forces a copy of the original keys
         keys_to_keep = list(self.assetName_to_NNidx)
-        # remove the assets that are now gone
         for asset_name in keys_to_keep:
             if asset_name not in assets_remaining:
                 del self.assetName_to_NNidx[asset_name]
