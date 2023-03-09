@@ -124,7 +124,7 @@ class AiManager:
 
         self.blacklist = set()
         
-        # self.currentNN += 1
+        self.currentNN += 1
         # empty blacklist
         if self.currentNN == GENERATION_SIZE:
             # self.save_population(POPULATION_SAVE_DIR / f"pop_gen{self.generations_passed}.pt")
