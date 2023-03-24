@@ -18,6 +18,6 @@ Kyle L. Chen
 **Note About Enemy Missiles**: If physically possible, enemy missiles will redirect to the next "easiest" target if their original target is destroyed. Easiest target is defined as a combination of distance and orientation of possible targets. Targets in line and closer to enemy missiles will be "easier" targets. If enemy missiles cannot acquire or reach a new target they will self-destruct. This means that when a ship dies, existing enemy missiles targeting it could redirect and target another ship if possible.
 
 **Testing scenarios**: When developing your clients, you should strive to complete fully populated scenarios (30 threats, 5 friendly ships, 1 reference ship) in less than 5 minutes in Synchronous (Step) mode. When we test your clients, we will first test in synchronous mode to determine your score if the test scenario completes within the 5-minute time-limit. If it does not complete in time, then your client will be re-run within GUI mode and that score will be used for your team. Note that GUI mode is generally more challenging as it will not wait for a synchronous reply message from your algorithm if it is too slow, and the threats will continue moving in toward your friendly assets regardless of whether your algorithm is sending replies.
-
+  
 ## Side Note
 Do not judge group work by user commits; the group used VSCode's Live Share extension to work together.
