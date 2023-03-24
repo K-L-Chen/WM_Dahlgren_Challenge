@@ -1,4 +1,4 @@
-# W&M Dahlgren Innovations Challenge - [3rd Place Overall]([https://www.facebook.com/NSWCDahlgrenDivision/](https://www.facebook.com/NSWCDahlgrenDivision/posts/pfbid08vMKFkqWHB8KQi2V8VrRXyxw76puAYYzAF93BBpb7aLzu5LEFQUbQvix8W9Gxvpjl?__cft__[0]=AZUCSnZiX_kc_hXEVvQalEKJo49LvrgIcXIYFvdy_QRkqbMmfF5h3_Fgl-bDcY6XJereVkGhihkcSvdPjHqTq0pGFmMB_A4LZDG2eoQ5aSP3RICYn7ANBJXPElUiPHos7c77iYVdJFlH7xpj6diNbt6HGJEF17eYSBkFJkD0R3rAp9WEJacvGO1K3fIaizzqdGtkCIXX_sSKyFyTCERvIJQ4&__tn__=%2CO%2CP-R))
+# W&M Dahlgren Innovations Challenge - [3rd Place Overall](https://www.facebook.com/NSWCDahlgrenDivision/posts/pfbid08vMKFkqWHB8KQi2V8VrRXyxw76puAYYzAF93BBpb7aLzu5LEFQUbQvix8W9Gxvpjl?__cft__[0]=AZUCSnZiX_kc_hXEVvQalEKJo49LvrgIcXIYFvdy_QRkqbMmfF5h3_Fgl-bDcY6XJereVkGhihkcSvdPjHqTq0pGFmMB_A4LZDG2eoQ5aSP3RICYn7ANBJXPElUiPHos7c77iYVdJFlH7xpj6diNbt6HGJEF17eYSBkFJkD0R3rAp9WEJacvGO1K3fIaizzqdGtkCIXX_sSKyFyTCERvIJQ4&__tn__=%2CO%2CP-R)
 
 ## Members:
 Joseph S. Lee  
